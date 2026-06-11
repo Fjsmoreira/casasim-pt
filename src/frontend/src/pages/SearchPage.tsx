@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { MapContainer, TileLayer } from 'react-leaflet'
 import L from 'leaflet'
 
@@ -141,18 +141,71 @@ function EmptyState() {
 /* ─────── Main SearchPage ─────── */
 
 export default function SearchPage() {
-  const filterParams = useFilterStore((s) => s.toParams())
-  const [page, setPage] = useState(1)
-  const previousParamsJson = useRef<string | undefined>(undefined)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const filterStore = useFilterStore()
+  const filterParams = filterStore.toParams()
 
-  // Reset to page 1 when filters change
-  const paramsKey = JSON.stringify(filterParams)
+  /* ── Sync URL → store on mount / URL change ── */
   useEffect(() => {
-    if (previousParamsJson.current !== undefined && previousParamsJson.current !== paramsKey) {
-      setPage(1)
+    const urlType = searchParams.get('type') ?? undefined
+    const urlTransaction = searchParams.get('transaction') ?? undefined
+    const urlMinPrice = searchParams.get('minPrice') ? Number(searchParams.get('minPrice')) : undefined
+    const urlMaxPrice = searchParams.get('maxPrice') ? Number(searchParams.get('maxPrice')) : undefined
+    const urlBedrooms = searchParams.get('bedrooms') ? Number(searchParams.get('bedrooms')) : undefined
+    const urlPage = searchParams.get('page') ? Number(searchParams.get('page')) : 1
+
+    // Only sync if the URL has any filter params (avoids overwriting defaults on first load)
+    if (searchParams.size > 0) {
+      if (urlType !== filterStore.type) filterStore.setType(urlType)
+      if (urlTransaction !== filterStore.transaction) filterStore.setTransaction(urlTransaction)
+      if (urlMinPrice !== filterStore.priceMin) filterStore.setPriceMin(urlMinPrice)
+      if (urlMaxPrice !== filterStore.priceMax) filterStore.setPriceMax(urlMaxPrice)
+      if (urlBedrooms !== filterStore.bedrooms) filterStore.setBedrooms(urlBedrooms)
+      setPage(urlPage)
     }
-    previousParamsJson.current = paramsKey
-  }, [paramsKey])
+    // Run only once on mount — intentionally no deps so URL drives initial state
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  /* ── Sync store → URL when filters change ── */
+  const paramsKey = JSON.stringify(filterParams)
+  const isFirstRender = useRef(true)
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return
+    }
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        for (const [key, val] of Object.entries(filterParams)) {
+          if (val !== undefined && val !== null) {
+            next.set(key, String(val))
+          } else {
+            next.delete(key)
+          }
+        }
+        // Reset page when filters change
+        next.delete('page')
+        return next
+      },
+      { replace: true },
+    )
+  }, [paramsKey, setSearchParams])
+
+  /* ── Sync page → URL ── */
+  const pageFromUrl = searchParams.get('page') ? Number(searchParams.get('page')) : 1
+  const [page, setPage] = useState(pageFromUrl)
+  useEffect(() => {
+    setSearchParams(
+      (prev) => {
+        if (page > 1) prev.set('page', String(page))
+        else prev.delete('page')
+        return prev
+      },
+      { replace: true },
+    )
+  }, [page, setSearchParams])
 
   const { data, isLoading, isError, error, refetch, isFetching } = useListings({
     ...filterParams,
