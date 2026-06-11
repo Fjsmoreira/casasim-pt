@@ -55,6 +55,42 @@ export interface PropertyListResponse {
 /** Response from GET /api/properties/:id */
 export type PropertyDetailResponse = Property
 
+/** Admin: single listing row in the management table */
+export interface AdminListing {
+  id: string
+  title: string
+  price: number | null
+  priceFormatted: string | null
+  currency: string
+  propertyType: string
+  status: string
+  city: string | null
+  bedrooms: number | null
+  areaM2: number | null
+  thumbnailUrl: string | null
+  agencyName: string | null
+  agencySlug: string | null
+  lastSeenAt: string
+  createdAt: string
+  updatedAt: string
+}
+
+/** Admin: paginated listings response */
+export interface AdminListingsResponse {
+  items: AdminListing[]
+  page: number
+  pageSize: number
+  totalCount: number
+  totalPages: number
+}
+
+/** Admin: agency record for filter dropdown */
+export interface AdminAgency {
+  id: string
+  name: string
+  slug: string
+}
+
 /** GeoJSON FeatureCollection for the map page */
 export interface MapPropertiesResponse {
   type: 'FeatureCollection'

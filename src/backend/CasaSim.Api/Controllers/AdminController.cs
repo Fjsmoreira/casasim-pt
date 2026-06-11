@@ -1,4 +1,6 @@
 using CasaSim.Api.Auth;
+using CasaSim.Api.Models;
+using CasaSim.Core.Data.Entities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -33,6 +35,107 @@ public sealed class AdminController : ControllerBase
             activeListings = active,
             scrapedToday,
         });
+    }
+
+    /// <summary>
+    /// Listings management table: thumbnail, title, price, source, status, last seen.
+    /// Supports pagination and basic filters (status, agency, search).
+    /// </summary>
+    [HttpGet("listings")]
+    public async Task<ActionResult<PagedResult<AdminListingDto>>> GetListings(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 25,
+        [FromQuery] string? status = null,
+        [FromQuery] string? agency = null,
+        [FromQuery] string? search = null,
+        CancellationToken ct = default)
+    {
+        IQueryable<Listing> query = _db.Listings
+            .AsNoTracking()
+            .Include(l => l.Agency)
+            .Include(l => l.Images.Where(i => i.IsPrimary));
+
+        // ── Filters ──
+        if (!string.IsNullOrWhiteSpace(status) &&
+            Enum.TryParse<ListingStatus>(status, ignoreCase: true, out var statusFilter))
+        {
+            query = query.Where(l => l.Status == statusFilter);
+        }
+
+        if (!string.IsNullOrWhiteSpace(agency))
+        {
+            query = query.Where(l => l.Agency != null && l.Agency.Slug == agency);
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            query = query.Where(l =>
+                EF.Functions.ILike(l.Title, $"%{search}%") ||
+                (l.City != null && EF.Functions.ILike(l.City, $"%{search}%")));
+        }
+
+        // ── Total count ──
+        var totalCount = await query.CountAsync(ct);
+
+        // ── Sorting: most recently seen first ──
+        query = query
+            .OrderByDescending(l => l.LastSeenAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize);
+
+        // ── Project ──
+        var items = await query
+            .Select(l => new AdminListingDto
+            {
+                Id = l.Id,
+                Title = l.Title,
+                Price = l.Price,
+                PriceFormatted = l.Price != null ? $"€{l.Price:N0}" : null,
+                Currency = l.Currency,
+                PropertyType = l.PropertyType.ToString(),
+                Status = l.Status.ToString(),
+                City = l.City,
+                Bedrooms = l.Bedrooms,
+                AreaM2 = l.AreaM2,
+                ThumbnailUrl = l.Images
+                    .Where(i => i.IsPrimary)
+                    .Select(i => i.ThumbnailUrl ?? i.Url)
+                    .FirstOrDefault(),
+                AgencyName = l.Agency != null ? l.Agency.Name : null,
+                AgencySlug = l.Agency != null ? l.Agency.Slug : null,
+                LastSeenAt = l.LastSeenAt,
+                CreatedAt = l.CreatedAt,
+                UpdatedAt = l.UpdatedAt,
+            })
+            .ToListAsync(ct);
+
+        return Ok(new PagedResult<AdminListingDto>
+        {
+            Items = items,
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount,
+        });
+    }
+
+    /// <summary>
+    /// Returns the list of agencies for admin filter dropdowns.
+    /// </summary>
+    [HttpGet("agencies")]
+    public async Task<ActionResult> GetAgencies(CancellationToken ct)
+    {
+        var agencies = await _db.Agencies
+            .AsNoTracking()
+            .OrderBy(a => a.Name)
+            .Select(a => new
+            {
+                a.Id,
+                a.Name,
+                a.Slug,
+            })
+            .ToListAsync(ct);
+
+        return Ok(agencies);
     }
 
     /// <summary>
