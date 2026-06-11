@@ -1,6 +1,8 @@
 using CasaSim.Api;
 using CasaSim.Core.Data.Entities;
 using CasaSim.Core.Models;
+using CasaSim.Scraper.Diagnostics;
+using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Serilog.Context;
@@ -126,6 +128,12 @@ public sealed class ListingUpsertService
         CancellationToken ct = default)
     {
         using var agencySlugScope = LogContext.PushProperty("agencySlug", agencySlug);
+        using var activity = ScraperDiagnostics.ActivitySource.StartActivity(
+            ScraperDiagnostics.SpanUpsertBatch,
+            ActivityKind.Internal);
+
+        activity?.SetTag(ScraperDiagnostics.TagAgencySlug, agencySlug);
+        activity?.SetTag("listing_count", properties.Count);
 
         var created = 0;
         var updated = 0;
@@ -153,6 +161,10 @@ public sealed class ListingUpsertService
         _logger.LogInformation(
             "Batch upsert for {Slug}: {Created} created, {Updated} updated, {Skipped} skipped",
             agencySlug, created, updated, skipped);
+
+        activity?.SetTag("result.created", created);
+        activity?.SetTag("result.updated", updated);
+        activity?.SetTag("result.skipped", skipped);
 
         return new BatchUpsertResult(created, updated, skipped);
     }
