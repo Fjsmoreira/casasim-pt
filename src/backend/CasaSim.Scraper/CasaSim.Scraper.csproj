@@ -18,4 +18,8 @@
     <ProjectReference Include="..\CasaSim.Core\CasaSim.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="Fixtures/**/*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>
