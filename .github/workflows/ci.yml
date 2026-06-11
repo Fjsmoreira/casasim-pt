@@ -10,9 +10,6 @@ jobs:
   backend:
     name: Backend (.NET)
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: src/backend
 
     steps:
       - uses: actions/checkout@v4
@@ -26,8 +23,11 @@ jobs:
       - name: Build
         run: dotnet build CasaSim.sln --no-restore -c Release
 
-      - name: Test
-        run: dotnet test CasaSim.sln --no-build -c Release --verbosity normal
+      - name: Test API project
+        run: dotnet test src/backend/CasaSim.Api.Tests/CasaSim.Api.Tests.csproj --no-build -c Release --verbosity normal
+
+      - name: Test scraper project
+        run: dotnet test src/backend/CasaSim.Scraper.Tests/CasaSim.Scraper.Tests.csproj -c Release --verbosity normal
 
   frontend:
     name: Frontend (React)
