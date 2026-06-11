@@ -1,3 +1,8 @@
+# Docker Compose — CasaSim.pt
+#
+#   docker compose up -d                        # production (db, api, scraper, frontend)
+#   docker compose --profile observability up -d # + observability stack (otel+jaeger)
+
 services:
   db:
     image: postgis/postgis:16-3.4
@@ -23,6 +28,8 @@ services:
     environment:
       ConnectionStrings__DefaultConnection: Host=db;Port=5432;Database=casasim;Username=${POSTGRES_USER:-casasim};Password=${POSTGRES_PASSWORD:-changeme}
       ASPNETCORE_ENVIRONMENT: Production
+      # Observability — set OTEL_EXPORTER_OTLP_ENDPOINT to activate (default: no export)
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
     depends_on:
       db:
         condition: service_healthy
@@ -43,6 +50,9 @@ services:
     environment:
       ConnectionStrings__DefaultConnection: Host=db;Port=5432;Database=casasim;Username=${POSTGRES_USER:-casasim};Password=${POSTGRES_PASSWORD:-changeme}
       DOTNET_ENVIRONMENT: Production
+      # Observability — set OTEL_EXPORTER_OTLP_ENDPOINT to activate (default: no export)
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      OpenTelemetry__Otlp__Endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
     depends_on:
       db:
         condition: service_healthy
@@ -68,6 +78,31 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+    restart: unless-stopped
+
+  # ── Observability (otel-collector + Jaeger) ──────────────────────
+  # Activate with: docker compose --profile observability up -d
+  # -----------------------------------------------------------------
+  otel-collector:
+    profiles: ["observability"]
+    image: otel/opentelemetry-collector-contrib:0.120.0
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./docker/otel-collector-config.yaml:/etc/otel-collector-config.yaml
+    ports:
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+    depends_on:
+      - jaeger
+    restart: unless-stopped
+
+  jaeger:
+    profiles: ["observability"]
+    image: jaegertracing/all-in-one:1.60
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "16686:16686" # Web UI
     restart: unless-stopped
 
 volumes:
