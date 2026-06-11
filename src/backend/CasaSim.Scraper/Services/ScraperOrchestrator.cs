@@ -75,13 +75,18 @@ internal sealed class ScraperOrchestrator : BackgroundService
 
             _logger.LogDebug("Tick: {Count} source(s) due", due.Count);
 
-            using var scope = _scopeFactory.CreateScope();
-            var services = scope.ServiceProvider;
-
             foreach (var (agencyName, _) in due)
             {
                 if (stoppingToken.IsCancellationRequested)
                     break;
+
+                // Each scraper gets its own DI scope so it owns its own
+                // AppDbContext.  Without this, all scrapers in the same
+                // tick share one DbContext, and the change-tracker state
+                // from the first scraper's SaveChangesAsync corrupts the
+                // second scraper's operations (DbUpdateConcurrencyException).
+                using var scope = _scopeFactory.CreateScope();
+                var services = scope.ServiceProvider;
 
                 var scraper = ResolveScraper(agencyName, services);
                 if (scraper is null)
