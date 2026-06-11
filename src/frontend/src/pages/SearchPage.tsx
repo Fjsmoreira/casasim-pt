@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react'
 import { MapContainer, TileLayer } from 'react-leaflet'
 import { Link } from 'react-router-dom'
 import L from 'leaflet'
@@ -15,36 +14,24 @@ L.Icon.Default.mergeOptions({
   shadowUrl: markerShadow,
 })
 
-interface Property {
-  id: string
-  title: string
-  price: number
-  type: string
-  transaction: string
-  bedrooms?: number
-  areaM2?: number
-  city?: string
-  images: string[]
-  listingUrl?: string
-}
+import { useListings } from '@/hooks'
+import { useFilterStore } from '@/stores/filterStore'
+import FilterSidebar, { FilterMobileTrigger } from '@/components/FilterSidebar'
+import type { Property } from '@/types/api'
 
 export default function SearchPage() {
-  const [properties, setProperties] = useState<Property[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    fetch('/api/properties')
-      .then(res => res.json())
-      .then(data => setProperties(data.items || []))
-      .catch(() => setProperties([]))
-      .finally(() => setLoading(false))
-  }, [])
+  const filterParams = useFilterStore((s) => s.toParams())
+  const { data, isLoading } = useListings(filterParams)
+  const properties: Property[] = data?.items ?? []
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Imóveis em Pombal</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Imóveis em Pombal</h1>
+        <FilterMobileTrigger />
+      </div>
 
-      {loading ? (
+      {isLoading ? (
         <p className="text-gray-500">A carregar...</p>
       ) : properties.length === 0 ? (
         <div>
@@ -66,9 +53,13 @@ export default function SearchPage() {
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-4">
-            {properties.map(p => (
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Filter sidebar — desktop */}
+          <FilterSidebar className="lg:col-span-1" />
+
+          {/* Listing grid + map */}
+          <div className="lg:col-span-3 space-y-4">
+            {properties.map((p) => (
               <Link
                 key={p.id}
                 to={`/property/${p.id}`}
@@ -79,11 +70,11 @@ export default function SearchPage() {
                     <img
                       src={p.images[0]}
                       alt={p.title}
-                      className="w-32 h-24 object-cover rounded-lg"
+                      className="w-32 h-24 object-cover rounded-lg shrink-0"
                     />
                   )}
-                  <div>
-                    <h3 className="font-semibold text-gray-900">{p.title}</h3>
+                  <div className="min-w-0">
+                    <h3 className="font-semibold text-gray-900 truncate">{p.title}</h3>
                     <p className="text-emerald-700 font-bold text-lg">
                       €{p.price.toLocaleString('pt-PT')}
                     </p>
@@ -96,19 +87,21 @@ export default function SearchPage() {
                 </div>
               </Link>
             ))}
-          </div>
-          <div className="h-[500px] rounded-lg overflow-hidden border border-gray-200 lg:sticky lg:top-8">
-            <MapContainer
-              center={[39.915, -8.628]}
-              zoom={13}
-              className="h-full w-full"
-              scrollWheelZoom={false}
-            >
-              <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              />
-            </MapContainer>
+
+            {/* Map */}
+            <div className="h-[400px] rounded-lg overflow-hidden border border-gray-200 lg:h-[500px] lg:sticky lg:top-8">
+              <MapContainer
+                center={[39.915, -8.628]}
+                zoom={13}
+                className="h-full w-full"
+                scrollWheelZoom={false}
+              >
+                <TileLayer
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+              </MapContainer>
+            </div>
           </div>
         </div>
       )}
