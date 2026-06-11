@@ -1,11 +1,15 @@
 using CasaSim.Api;
 using CasaSim.Core.Interfaces;
 using CasaSim.Scraper.Configuration;
+using CasaSim.Scraper.Diagnostics;
 using CasaSim.Scraper.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using Serilog;
 using Serilog.Formatting.Json;
 
@@ -49,6 +53,39 @@ var host = Host.CreateDefaultBuilder(args)
 
         // Background orchestrator (PeriodicTimer-based)
         services.AddHostedService<ScraperOrchestrator>();
+
+        // ── OpenTelemetry ─────────────────────────────────────
+        var otelResourceBuilder = ResourceBuilder.CreateDefault()
+            .AddService("casasim-scraper", serviceVersion: "1.0.0");
+
+        services.AddOpenTelemetry()
+            .WithTracing(tracing => tracing
+                .SetResourceBuilder(otelResourceBuilder)
+                .AddSource("CasaSim.Scraper")
+                .AddHttpClientInstrumentation()
+                .AddOtlpExporter(options =>
+                {
+                    // OTLP is configured via standard env vars / config:
+                    //   OTEL_EXPORTER_OTLP_ENDPOINT, OTEL_EXPORTER_OTLP_HEADERS, etc.
+                    // Optional: override endpoint from config section.
+                    var otlpCfg = ctx.Configuration.GetSection("OpenTelemetry:Otlp");
+                    if (otlpCfg.Exists())
+                    {
+                        otlpCfg.Bind(options);
+                    }
+                }))
+            .WithMetrics(metrics => metrics
+                .SetResourceBuilder(otelResourceBuilder)
+                .AddMeter("CasaSim.Scraper")
+                .AddHttpClientInstrumentation()
+                .AddOtlpExporter(options =>
+                {
+                    var otlpCfg = ctx.Configuration.GetSection("OpenTelemetry:Otlp");
+                    if (otlpCfg.Exists())
+                    {
+                        otlpCfg.Bind(options);
+                    }
+                }));
     })
     .UseSerilog((ctx, lc) => lc
         .ReadFrom.Configuration(ctx.Configuration)
