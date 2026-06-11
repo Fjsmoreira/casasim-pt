@@ -1,6 +1,9 @@
 # CasaSim.pt
 
-Property aggregator for Pombal, Leiria — Portugal. Aggregates real estate listings from multiple agencies (Remax, etc.) into a single searchable platform with an interactive map.
+**Property aggregator for Pombal, Portugal.** Inspired by Funda.nl — aggregates buying and renting listings from local real estate agencies into a single searchable platform with an interactive map.
+
+> **Product:** casasim.pt  
+> **Repo:** github.com/Fjsmoreira/casasim-pt
 
 ## Architecture
 
