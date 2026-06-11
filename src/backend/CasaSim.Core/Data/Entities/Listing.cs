@@ -16,6 +16,8 @@ public sealed class Listing
     public string Title { get; set; } = string.Empty;
     public string? Description { get; set; }
 
+    public string? City { get; set; }
+
     public ListingPropertyType PropertyType { get; set; } = ListingPropertyType.Unknown;
     public ListingStatus Status { get; set; } = ListingStatus.Active;
     public ListingPriceType PriceType { get; set; } = ListingPriceType.Sale;

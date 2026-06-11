@@ -1,3 +1,5 @@
+using NetTopologySuite.Geometries;
+
 namespace CasaSim.Core.Data.Entities;
 
 public sealed class Location
@@ -15,6 +17,7 @@ public sealed class Location
     public decimal? Longitude { get; set; }
     public string? Geohash { get; set; }
     public string? RawAddress { get; set; }
+    public Point? Coordinate { get; set; }
 
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;

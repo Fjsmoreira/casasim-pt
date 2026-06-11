@@ -1,5 +1,4 @@
-using CasaSim.Api;
-using CasaSim.Core.Models;
+using CasaSim.Core.Data.Entities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,32 +13,36 @@ public sealed class PropertiesController : ControllerBase
     public PropertiesController(AppDbContext db) => _db = db;
 
     [HttpGet]
-    public async Task<ActionResult<IReadOnlyList<Property>>> Search(
+    public async Task<ActionResult<IReadOnlyList<Listing>>> Search(
         [FromQuery] string? city,
-        [FromQuery] PropertyType? type,
-        [FromQuery] TransactionType? transaction,
+        [FromQuery] ListingPropertyType? type,
+        [FromQuery] ListingPriceType? priceType,
         [FromQuery] decimal? minPrice,
         [FromQuery] decimal? maxPrice,
         [FromQuery] int? minBedrooms,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20)
     {
-        var query = _db.Properties.AsQueryable();
+        var query = _db.Listings.AsQueryable();
 
         if (!string.IsNullOrEmpty(city))
-            query = query.Where(p => p.City!.Contains(city));
+            query = query.Where(l => l.City != null && l.City.Contains(city));
         if (type.HasValue)
-            query = query.Where(p => p.Type == type.Value);
-        if (transaction.HasValue)
-            query = query.Where(p => p.Transaction == transaction.Value);
+            query = query.Where(l => l.PropertyType == type.Value);
+        if (priceType.HasValue)
+            query = query.Where(l => l.PriceType == priceType.Value);
         if (minPrice.HasValue)
-            query = query.Where(p => p.Price >= minPrice.Value);
+            query = query.Where(l => l.Price >= minPrice.Value);
         if (maxPrice.HasValue)
-            query = query.Where(p => p.Price <= maxPrice.Value);
+            query = query.Where(l => l.Price <= maxPrice.Value);
         if (minBedrooms.HasValue)
-            query = query.Where(p => p.Bedrooms >= minBedrooms.Value);
+            query = query.Where(l => l.Bedrooms >= minBedrooms.Value);
 
-        query = query.OrderByDescending(p => p.UpdatedAt);
+        query = query.Include(l => l.Agency)
+                     .Include(l => l.Location)
+                     .Include(l => l.Images)
+                     .Include(l => l.Features)
+                     .OrderByDescending(l => l.UpdatedAt);
 
         var total = await query.CountAsync();
         var items = await query
@@ -53,10 +56,16 @@ public sealed class PropertiesController : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
-    public async Task<ActionResult<Property>> GetById(Guid id)
+    public async Task<ActionResult<Listing>> GetById(Guid id)
     {
-        var property = await _db.Properties.FindAsync(id);
-        if (property is null) return NotFound();
-        return Ok(property);
+        var listing = await _db.Listings
+            .Include(l => l.Agency)
+            .Include(l => l.Location)
+            .Include(l => l.Images.OrderBy(i => i.SortOrder))
+            .Include(l => l.Features)
+            .FirstOrDefaultAsync(l => l.Id == id);
+
+        if (listing is null) return NotFound();
+        return Ok(listing);
     }
 }
