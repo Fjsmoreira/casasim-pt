@@ -156,7 +156,42 @@ public sealed class ListingUpsertService
             }
         }
 
-        await _db.SaveChangesAsync(ct);
+        // Retry SaveChangesAsync on concurrency exceptions.  EF Core
+        // throws DbUpdateConcurrencyException when an UPDATE or DELETE
+        // affects 0 rows — this can happen spuriously in batch scenarios
+        // when Npgsql's batching interacts with cascade-delete image
+        // replacement.  Clear the change tracker and retry once.
+        var maxRetries = 3;
+        for (var attempt = 1; attempt <= maxRetries; attempt++)
+        {
+            try
+            {
+                await _db.SaveChangesAsync(ct);
+                break; // success
+            }
+            catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException) when (attempt < maxRetries)
+            {
+                _logger.LogWarning(
+                    "Concurrency conflict saving batch for {Slug} (attempt {Attempt}/{Max}); retrying",
+                    agencySlug, attempt, maxRetries);
+                _db.ChangeTracker.Clear();
+                // Re-process all properties from scratch — fresh reads
+                // from the DB avoid stale change-tracker state.
+                created = 0;
+                updated = 0;
+                skipped = 0;
+                foreach (var property in properties)
+                {
+                    var result = await UpsertAsync(property, agencySlug, ct);
+                    switch (result.Action)
+                    {
+                        case ListingUpsertAction.Created: created++; break;
+                        case ListingUpsertAction.Updated: updated++; break;
+                        default: skipped++; break;
+                    }
+                }
+            }
+        }
 
         _logger.LogInformation(
             "Batch upsert for {Slug}: {Created} created, {Updated} updated, {Skipped} skipped",
