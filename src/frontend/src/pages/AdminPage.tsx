@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import apiClient from '../lib/api'
 import type { AdminListingsResponse, AdminAgency } from '../types/api'
+import ScraperStatusPanel from '../components/ScraperStatusPanel'
 
 interface DashboardData {
   totalListings: number
@@ -51,6 +52,7 @@ export default function AdminPage() {
   const [dashboard, setDashboard] = useState<DashboardData | null>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [scraperError, setScraperError] = useState('')
 
   // Tab state
   const [activeTab, setActiveTab] = useState<AdminTab>('dashboard')
@@ -261,6 +263,12 @@ export default function AdminPage() {
             </div>
           )}
 
+          {scraperError && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md mb-6">
+              {scraperError}
+            </div>
+          )}
+
           {dashboard && (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -277,6 +285,12 @@ export default function AdminPage() {
               </div>
             </div>
           )}
+
+          {/* Scraper Status Panel */}
+          <ScraperStatusPanel
+            onFetchSuccess={() => setScraperError('')}
+            onError={(msg) => setScraperError(msg)}
+          />
         </>
       )}
 
@@ -461,16 +475,16 @@ export default function AdminPage() {
 
                           {/* Status */}
                           <td className="px-4 py-3 whitespace-nowrap">
-                            <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${statusBadgeClass(item.status)}`}>
+                            <span
+                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusBadgeClass(item.status)}`}
+                            >
                               {item.status}
                             </span>
                           </td>
 
                           {/* Last seen */}
-                          <td className="px-4 py-3 whitespace-nowrap text-right">
-                            <span className="text-sm text-gray-500" title={formatDate(item.lastSeenAt)}>
-                              {formatDate(item.lastSeenAt)}
-                            </span>
+                          <td className="px-4 py-3 whitespace-nowrap text-right text-sm text-gray-500">
+                            {item.lastSeenAt ? formatDate(item.lastSeenAt) : '—'}
                           </td>
                         </tr>
                       ))
@@ -481,23 +495,22 @@ export default function AdminPage() {
 
               {/* Pagination */}
               {listings.totalPages > 1 && (
-                <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-t border-gray-200">
-                  <p className="text-sm text-gray-500">
-                    Mostrando {(listings.page - 1) * listings.pageSize + 1}–
-                    {Math.min(listings.page * listings.pageSize, listings.totalCount)} de {listings.totalCount}
-                  </p>
+                <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 bg-gray-50">
+                  <span className="text-sm text-gray-500">
+                    Página {listings.page} de {listings.totalPages} ({listings.totalCount} total)
+                  </span>
                   <div className="flex gap-2">
                     <button
-                      onClick={() => setPage((p) => Math.max(1, p - 1))}
                       disabled={page <= 1}
-                      className="px-3 py-1 text-sm border border-gray-300 rounded-md bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Anterior
                     </button>
                     <button
-                      onClick={() => setPage((p) => Math.min(listings.totalPages, p + 1))}
                       disabled={page >= listings.totalPages}
-                      className="px-3 py-1 text-sm border border-gray-300 rounded-md bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                      onClick={() => setPage((p) => p + 1)}
+                      className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Seguinte
                     </button>
