@@ -33,7 +33,9 @@ var host = Host.CreateDefaultBuilder(args)
         // Scraper services
         services.AddScoped<ScrapeLoggingService>();
         services.AddScoped<IPropertyScraper, RemaxScraper>();
+        services.AddScoped<IPropertyScraper, Century21Scraper>();
         services.AddScoped<RemaxListingParser>();
+        services.AddScoped<Century21ListingParser>();
         services.AddScoped<ListingUpsertService>();
 
         // Background orchestrator (PeriodicTimer-based)

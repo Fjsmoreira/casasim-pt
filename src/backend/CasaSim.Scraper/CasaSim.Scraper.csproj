@@ -18,6 +18,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="CasaSim.Scraper.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\CasaSim.Core\CasaSim.Core.csproj" />
     <ProjectReference Include="..\CasaSim.Api\CasaSim.Api.csproj" />
   </ItemGroup>
