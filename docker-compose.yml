@@ -19,7 +19,7 @@ services:
   api:
     build:
       context: .
-      dockerfile: Dockerfile.api
+      dockerfile: docker/Dockerfile.api
     environment:
       ConnectionStrings__DefaultConnection: Host=db;Port=5432;Database=casasim;Username=${POSTGRES_USER:-casasim};Password=${POSTGRES_PASSWORD:-changeme}
       ASPNETCORE_ENVIRONMENT: Production

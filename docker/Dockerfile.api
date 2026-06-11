@@ -1,0 +1,15 @@
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+COPY src/backend/CasaSim.Core/CasaSim.Core.csproj src/backend/CasaSim.Core/
+COPY src/backend/CasaSim.Api/CasaSim.Api.csproj src/backend/CasaSim.Api/
+RUN dotnet restore src/backend/CasaSim.Api/CasaSim.Api.csproj
+COPY . .
+WORKDIR /src/src/backend/CasaSim.Api
+RUN dotnet publish -c Release -o /app
+
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
+WORKDIR /app
+COPY --from=build /app .
+EXPOSE 5000
+ENV ASPNETCORE_URLS=http://+:5000
+ENTRYPOINT ["dotnet", "CasaSim.Api.dll"]
