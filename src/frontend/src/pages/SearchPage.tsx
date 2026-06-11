@@ -214,8 +214,8 @@ export default function SearchPage() {
   })
 
   const properties: Property[] = data?.items ?? []
-  const totalPages = data ? Math.max(1, Math.ceil(data.total / data.pageSize)) : 1
-  const totalCount = data?.total ?? 0
+  const totalPages = data?.totalPages ?? 1
+  const totalCount = data?.totalCount ?? 0
   const isInitialLoad = isLoading && !data
   const isRefreshing = isFetching && !isLoading
 

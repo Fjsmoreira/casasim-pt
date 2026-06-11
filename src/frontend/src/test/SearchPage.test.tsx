@@ -124,7 +124,8 @@ describe('SearchPage', () => {
       http.get('/api/listings', () => {
         return HttpResponse.json({
           ...mockListResponse,
-          total: 25,
+          totalCount: 25,
+          totalPages: 3,
         })
       }),
     )

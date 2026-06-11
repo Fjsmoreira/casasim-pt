@@ -58,16 +58,18 @@ export const mockPropertyRent: Property = {
 
 export const mockListResponse: PropertyListResponse = {
   items: [mockProperty, mockPropertyNoImage, mockPropertyRent],
-  total: 3,
   page: 1,
   pageSize: 12,
+  totalCount: 3,
+  totalPages: 1,
 }
 
 export const mockEmptyListResponse: PropertyListResponse = {
   items: [],
-  total: 0,
   page: 1,
   pageSize: 12,
+  totalCount: 0,
+  totalPages: 1,
 }
 
 export const mockGeoJson: MapPropertiesResponse = {

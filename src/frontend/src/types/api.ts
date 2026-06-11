@@ -47,9 +47,10 @@ export interface ListingsParams {
 /** Response from GET /api/listings (paginated listing) */
 export interface PropertyListResponse {
   items: Property[]
-  total: number
   page: number
   pageSize: number
+  totalCount: number
+  totalPages: number
 }
 
 /** Response from GET /api/listings/:id */
