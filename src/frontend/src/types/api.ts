@@ -77,3 +77,34 @@ export interface MapPropertiesResponse {
     }
   }>
 }
+
+// ─── Admin: Scraper Status ────────────────────────────────
+
+/** A single scraper source's latest run info */
+export interface ScraperSourceRun {
+  sourceName: string
+  status: 'Started' | 'Succeeded' | 'PartiallySucceeded' | 'Failed' | 'Cancelled'
+  startedAt: string | null
+  completedAt: string | null
+  listingsFound: number
+  listingsCreated: number
+  listingsUpdated: number
+  listingsRemoved: number
+  errorMessage: string | null
+}
+
+/** A recent scraper error entry */
+export interface ScraperError {
+  sourceName: string
+  startedAt: string | null
+  errorMessage: string | null
+  errorDetails: string | null
+}
+
+/** Response from GET /api/admin/scraper-status */
+export interface ScraperStatusResponse {
+  sources: ScraperSourceRun[]
+  runCounts: Record<string, number>
+  recentErrors: ScraperError[]
+  lastRunOverall: string | null
+}
