@@ -20,7 +20,7 @@ namespace CasaSim.Scraper.Services;
 ///
 /// Image base URL: https://i.maxwork.pt/ds-l/
 /// </summary>
-internal sealed class RemaxListingParser
+public sealed class RemaxListingParser
 {
     private static readonly Regex NextDataRegex = new(
         @"<script\s+id=""__NEXT_DATA__""[^>]*type=""application/json"">(.*?)</script>",
