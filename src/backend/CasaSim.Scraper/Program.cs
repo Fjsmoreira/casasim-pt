@@ -6,8 +6,15 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
+using Serilog;
+using Serilog.Formatting.Json;
 
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console(new JsonFormatter(renderMessage: true))
+    .CreateBootstrapLogger();
+
+try
+{
 var host = Host.CreateDefaultBuilder(args)
     .ConfigureServices((ctx, services) =>
     {
@@ -43,11 +50,21 @@ var host = Host.CreateDefaultBuilder(args)
         // Background orchestrator (PeriodicTimer-based)
         services.AddHostedService<ScraperOrchestrator>();
     })
-    .ConfigureLogging(logging =>
-    {
-        logging.AddConsole();
-        logging.SetMinimumLevel(LogLevel.Information);
-    })
+    .UseSerilog((ctx, lc) => lc
+        .ReadFrom.Configuration(ctx.Configuration)
+        .Enrich.FromLogContext()
+        .Enrich.WithProperty("service.name", "casasim-scraper")
+        .Enrich.WithProperty("environment", ctx.HostingEnvironment.EnvironmentName)
+        .WriteTo.Console(new JsonFormatter(renderMessage: true)))
     .Build();
 
 await host.RunAsync();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "Scraper terminated unexpectedly");
+}
+finally
+{
+    Log.CloseAndFlush();
+}

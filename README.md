@@ -153,6 +153,15 @@ The public entrypoint is the frontend/Nginx service. Browser requests to `/api/.
 
 See `docs/networking.md` for the full model and operational checks.
 
+
+## Observability
+
+API and scraper containers write structured JSON logs to stdout/stderr so Docker and Coolify can collect them without sidecar agents or local log files. In Coolify, open the CasaSim resource, choose the API or scraper service, and use the **Logs** tab for the live stream/history. Locally, use `docker compose logs -f api scraper`.
+
+Common fields include `service.name`, `environment`, `requestId`, `traceId`, `route`, `statusCode`, and `durationMs` for API request completion logs. Scraper logs include `service.name`, `environment`, `scraperName`, `agencyName`, `agencySlug`, and, when a listing is being upserted, `sourceId` and `listingId`. Keep credentials in environment variables; do not log connection strings, API keys, cookies, or raw secrets.
+
+Log levels can be tuned in `src/backend/CasaSim.Api/appsettings.json` and `src/backend/CasaSim.Scraper/appsettings.json` under `Serilog:MinimumLevel`, with environment overrides such as `Serilog__MinimumLevel__Default=Debug` in Docker/Coolify when temporary diagnostics are needed.
+
 ## Stack
 
 - Backend: .NET 8, ASP.NET Core controllers, EF Core, Npgsql, Npgsql.NetTopologySuite, Serilog.

@@ -1,11 +1,15 @@
 using CasaSim.Api;
 using CasaSim.Api.Services;
 using CasaSim.Core.Interfaces;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
+using Serilog.Context;
+using Serilog.Formatting.Json;
+using System.Diagnostics;
 
 Log.Logger = new LoggerConfiguration()
-    .WriteTo.Console()
+    .WriteTo.Console(new JsonFormatter(renderMessage: true))
     .CreateBootstrapLogger();
 
 try
@@ -14,7 +18,10 @@ try
 
     builder.Host.UseSerilog((ctx, lc) => lc
         .ReadFrom.Configuration(ctx.Configuration)
-        .WriteTo.Console());
+        .Enrich.FromLogContext()
+        .Enrich.WithProperty("service.name", "casasim-api")
+        .Enrich.WithProperty("environment", ctx.HostingEnvironment.EnvironmentName)
+        .WriteTo.Console(new JsonFormatter(renderMessage: true)));
 
     // Services
     builder.Services.AddControllers();
@@ -58,7 +65,42 @@ try
 
     var app = builder.Build();
 
-    app.UseSerilogRequestLogging();
+    app.Use(async (context, next) =>
+    {
+        var stopwatch = Stopwatch.StartNew();
+        var requestId = context.TraceIdentifier;
+        var traceId = Activity.Current?.TraceId.ToString() ?? requestId;
+
+        using (LogContext.PushProperty("requestId", requestId))
+        using (LogContext.PushProperty("traceId", traceId))
+        using (LogContext.PushProperty("route", (context.GetEndpoint() as RouteEndpoint)?.RoutePattern.RawText ?? context.Request.Path.Value ?? string.Empty))
+        {
+            try
+            {
+                await next();
+            }
+            finally
+            {
+                stopwatch.Stop();
+                var route = (context.GetEndpoint() as RouteEndpoint)?.RoutePattern.RawText
+                    ?? context.Request.Path.Value
+                    ?? string.Empty;
+
+                using (LogContext.PushProperty("route", route))
+                using (LogContext.PushProperty("statusCode", context.Response.StatusCode))
+                using (LogContext.PushProperty("durationMs", stopwatch.Elapsed.TotalMilliseconds))
+                {
+                    Log.Information(
+                        "HTTP {Method} {Route} responded {StatusCode} in {DurationMs:0.0000} ms",
+                        context.Request.Method,
+                        route,
+                        context.Response.StatusCode,
+                        stopwatch.Elapsed.TotalMilliseconds);
+                }
+            }
+        }
+    });
+
     app.UseCors("Frontend");
 
     if (app.Environment.IsDevelopment())

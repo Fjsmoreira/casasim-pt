@@ -3,6 +3,7 @@ using CasaSim.Core.Data.Entities;
 using CasaSim.Core.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Serilog.Context;
 
 namespace CasaSim.Scraper.Services;
 
@@ -40,6 +41,9 @@ public sealed class ListingUpsertService
         string agencySlug,
         CancellationToken ct = default)
     {
+        using var agencySlugScope = LogContext.PushProperty("agencySlug", agencySlug);
+        using var sourceIdScope = LogContext.PushProperty("sourceId", property.ExternalId);
+
         // ── Resolve agency ────────────────────────────────────
         var agency = await _db.Agencies
             .AsTracking()
@@ -70,7 +74,8 @@ public sealed class ListingUpsertService
             // Replace images: remove old, add fresh set (works with PostgreSQL cascade delete)
             ReplaceImages(existing, property.Images);
 
-            _logger.LogDebug("Updated listing {ExternalId} ({Title})",
+            using var listingScope = LogContext.PushProperty("listingId", existing.Id);
+            _logger.LogDebug("Updated listing {SourceId} ({Title})",
                 property.ExternalId, property.Title);
 
             return new ListingUpsertResult(ListingUpsertAction.Updated, existing.Id);
@@ -103,7 +108,8 @@ public sealed class ListingUpsertService
             }
 
             _db.Listings.Add(listing);
-            _logger.LogDebug("Created listing {ExternalId} ({Title})",
+            using var listingScope = LogContext.PushProperty("listingId", listing.Id);
+            _logger.LogDebug("Created listing {SourceId} ({Title})",
                 property.ExternalId, property.Title);
 
             return new ListingUpsertResult(ListingUpsertAction.Created, listing.Id);
@@ -119,6 +125,8 @@ public sealed class ListingUpsertService
         string agencySlug,
         CancellationToken ct = default)
     {
+        using var agencySlugScope = LogContext.PushProperty("agencySlug", agencySlug);
+
         var created = 0;
         var updated = 0;
         var skipped = 0;
