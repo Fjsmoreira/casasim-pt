@@ -1,4 +1,6 @@
 using CasaSim.Api;
+using CasaSim.Core.Interfaces;
+using CasaSim.Scraper.Configuration;
 using CasaSim.Scraper.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -24,13 +26,17 @@ var host = Host.CreateDefaultBuilder(args)
             });
         }
 
+        // Scraper source configuration (per-source interval / enabled)
+        services.Configure<Dictionary<string, ScraperSourceOptions>>(
+            ctx.Configuration.GetSection("ScraperSources"));
+
         // Scraper services
         services.AddScoped<ScrapeLoggingService>();
-        services.AddScoped<RemaxScraper>();
+        services.AddScoped<IPropertyScraper, RemaxScraper>();
         services.AddScoped<RemaxListingParser>();
         services.AddScoped<ListingUpsertService>();
 
-        // Background orchestrator
+        // Background orchestrator (PeriodicTimer-based)
         services.AddHostedService<ScraperOrchestrator>();
     })
     .ConfigureLogging(logging =>
