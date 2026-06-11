@@ -1,0 +1,41 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.log
+.DS_Store
+*.swp
+launchSettings.json
+appsettings.Development.json
+
+# Node
+node_modules/
+dist/
+.vite/
+*.tsbuildinfo
+
+# IDE
+.vs/
+.vscode/
+.idea/
+*.sln.DotSettings.user
+
+# Docker
+docker-data/
+
+# Environment
+.env
+*.env.local
+*.env.development.local
+*.env.production.local
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Misc
+*.secrets
+coverage/
+*.coverage
