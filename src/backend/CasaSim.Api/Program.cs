@@ -1,4 +1,5 @@
 using CasaSim.Api;
+using CasaSim.Api.Services;
 using CasaSim.Core.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
@@ -48,6 +49,9 @@ try
             .AllowAnyHeader()
             .AllowAnyMethod());
     });
+
+    // Application services
+    builder.Services.AddScoped<CasaSim.Api.Services.IListingQueryService, CasaSim.Api.Services.ListingQueryService>();
 
     var app = builder.Build();
 
