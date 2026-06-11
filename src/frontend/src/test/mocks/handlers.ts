@@ -1,5 +1,5 @@
 import { http, HttpResponse } from 'msw'
-import { mockListResponse, mockEmptyListResponse, mockProperty, mockGeoJson, mockEmptyGeoJson } from './data'
+import { mockListResponse, mockEmptyListResponse, mockListingDetail, mockGeoJson, mockEmptyGeoJson } from './data'
 
 export const handlers = [
   // GET /api/listings — listings (SearchPage)
@@ -41,7 +41,7 @@ export const handlers = [
       )
     }
 
-    return HttpResponse.json(mockProperty)
+    return HttpResponse.json(mockListingDetail)
   }),
 
   // GET /api/listings/geojson — map page

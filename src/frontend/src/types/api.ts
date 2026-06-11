@@ -1,8 +1,43 @@
 // ─── DTO types for the CasaSim.pt API ──────────────────────────
 // All endpoints are proxied via Vite: /api/* → localhost:5000
 
-/** A single property listing */
-export interface Property {
+/** A single property listing (from GET /api/listings list) */
+export interface ListingSummary {
+  id: string
+  title: string
+  price: number
+  type: 'house' | 'apartment' | 'land' | 'commercial' | 'other'
+  transaction: 'sale' | 'rent'
+  bedrooms?: number
+  bathrooms?: number
+  areaM2?: number
+  landAreaM2?: number
+  city?: string
+  parish?: string
+  district?: string
+  primaryImage?: {
+    url: string
+    thumbnailUrl?: string
+    altText?: string
+  }
+  agency?: {
+    id: string
+    name: string
+    slug: string
+    websiteUrl?: string
+    contactEmail?: string
+    contactPhone?: string
+  }
+  listingUrl?: string
+  source?: string
+  latitude?: number
+  longitude?: number
+  createdAt?: string
+  updatedAt?: string
+}
+
+/** Full property detail (from GET /api/listings/:id) */
+export interface ListingDetail {
   id: string
   title: string
   price: number
@@ -19,16 +54,16 @@ export interface Property {
   images: string[]
   features?: string[]
   listingUrl?: string
-  latitude?: number
-  longitude?: number
-  createdAt?: string
-  updatedAt?: string
   source?: string
   sourceId?: string
   agencyName?: string
   agencyLogo?: string
   agencyPhone?: string
   agencyEmail?: string
+  latitude?: number
+  longitude?: number
+  createdAt?: string
+  updatedAt?: string
 }
 
 /** Search / filter parameters sent to GET /api/listings */
@@ -46,7 +81,7 @@ export interface ListingsParams {
 
 /** Response from GET /api/listings (paginated listing) */
 export interface PropertyListResponse {
-  items: Property[]
+  items: ListingSummary[]
   page: number
   pageSize: number
   totalCount: number
@@ -54,7 +89,7 @@ export interface PropertyListResponse {
 }
 
 /** Response from GET /api/listings/:id */
-export type PropertyDetailResponse = Property
+export type PropertyDetailResponse = ListingDetail
 
 /** Admin: single listing row in the management table */
 export interface AdminListing {
@@ -99,7 +134,7 @@ export interface MapPropertiesResponse {
     type: 'Feature'
     geometry: {
       type: 'Point'
-      coordinates: [number, number] // [lng, lat]
+      coordinates: [number, number]
     }
     properties: {
       id: string

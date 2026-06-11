@@ -28,7 +28,7 @@ internal sealed class RemaxScraper : IPropertyScraper
     public string AgencyName => "Remax";
 
     private const string SitemapIndexUrl = "https://remax.pt/sitemap.xml";
-    private const string ListingDetailSitemapPattern = "listings_details_en_";
+    private const string ListingDetailSitemapPattern = "listings_details_pt_";
     private const string PombalFilterPattern = @"pombal"; // case-insensitive
 
     private readonly HttpClient _http;

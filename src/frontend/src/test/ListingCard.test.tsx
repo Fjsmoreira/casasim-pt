@@ -2,11 +2,11 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import ListingCard from '@/components/listing/ListingCard'
-import { mockProperty, mockPropertyNoImage, mockPropertyRent } from './mocks/data'
+import { mockListing, mockListingNoImage, mockListingRent } from './mocks/data'
 
 describe('ListingCard', () => {
   it('renders price, type, area and bedrooms for a sale property', () => {
-    render(<ListingCard property={mockProperty} />)
+    render(<ListingCard property={mockListing} />)
 
     // Price formatted with pt-PT locale — may use . or , as separator
     expect(screen.getByText(/€\d/)).toBeInTheDocument()
@@ -31,7 +31,7 @@ describe('ListingCard', () => {
   })
 
   it('renders rent badge with /mês suffix', () => {
-    render(<ListingCard property={mockPropertyRent} />)
+    render(<ListingCard property={mockListingRent} />)
 
     expect(screen.getByText(/\/mês/)).toBeInTheDocument()
     expect(screen.getByText('Arrendamento')).toBeInTheDocument()
@@ -39,7 +39,7 @@ describe('ListingCard', () => {
 
   it('does not render area or bedrooms when not provided', () => {
     const propWithoutExtras = {
-      ...mockProperty,
+      ...mockListing,
       areaM2: undefined,
       bedrooms: undefined,
     }
@@ -50,7 +50,7 @@ describe('ListingCard', () => {
   })
 
   it('renders placeholder when no image is available', () => {
-    render(<ListingCard property={mockPropertyNoImage} />)
+    render(<ListingCard property={mockListingNoImage} />)
 
     // The placeholder shows a Home icon in a green gradient div
     // The img tag should not be present
@@ -58,18 +58,18 @@ describe('ListingCard', () => {
   })
 
   it('renders an image when images are provided', () => {
-    render(<ListingCard property={mockProperty} />)
+    render(<ListingCard property={mockListing} />)
 
     const img = screen.getByRole('img')
     expect(img).toBeInTheDocument()
-    expect(img).toHaveAttribute('src', 'https://example.com/photo.jpg')
+    expect(img).toHaveAttribute('src', 'https://example.com/photo_thumb.jpg')
   })
 
   it('calls onFavoriteToggle when favorite button is clicked', async () => {
     const onFavoriteToggle = vi.fn()
     const user = userEvent.setup()
 
-    render(<ListingCard property={mockProperty} onFavoriteToggle={onFavoriteToggle} />)
+    render(<ListingCard property={mockListing} onFavoriteToggle={onFavoriteToggle} />)
 
     const favButton = screen.getByLabelText('Adicionar aos favoritos')
     await user.click(favButton)
@@ -80,7 +80,7 @@ describe('ListingCard', () => {
   it('toggles favorite aria-label on click', async () => {
     const user = userEvent.setup()
 
-    render(<ListingCard property={mockProperty} />)
+    render(<ListingCard property={mockListing} />)
 
     const favButton = screen.getByLabelText('Adicionar aos favoritos')
     await user.click(favButton)
@@ -90,7 +90,7 @@ describe('ListingCard', () => {
 
   it('renders location defaulting to Pombal when no city/parish', () => {
     const propNoLocation = {
-      ...mockProperty,
+      ...mockListing,
       city: undefined,
       parish: undefined,
     }
@@ -100,14 +100,14 @@ describe('ListingCard', () => {
   })
 
   it('renders bedroom singular for 1 bedroom', () => {
-    const singleBed = { ...mockProperty, bedrooms: 1 }
+    const singleBed = { ...mockListing, bedrooms: 1 }
     render(<ListingCard property={singleBed} />)
 
     expect(screen.getByText('1 quarto')).toBeInTheDocument()
   })
 
   it('renders unknown type label gracefully', () => {
-    const unknownType = { ...mockProperty, type: 'other' as const }
+    const unknownType = { ...mockListing, type: 'other' as const }
     render(<ListingCard property={unknownType} />)
 
     expect(screen.getByText('Outro')).toBeInTheDocument()

@@ -34,6 +34,74 @@ public sealed class ListingsController : ControllerBase
     }
 
     /// <summary>
+    /// Get a single listing by ID with full details (images, features, agency, location).
+    /// </summary>
+    [HttpGet("{id:guid}")]
+    public async Task<ActionResult<ListingDetailDto>> GetById(Guid id, CancellationToken ct)
+    {
+        var listing = await _db.Listings
+            .AsNoTracking()
+            .Where(l => l.Id == id)
+            .Select(l => new ListingDetailDto
+            {
+                Id = l.Id,
+                Title = l.Title,
+                Price = l.Price,
+                PriceType = l.PriceType.ToString(),
+                Currency = l.Currency,
+                PropertyType = l.PropertyType.ToString(),
+                Status = l.Status.ToString(),
+                City = l.City,
+                Parish = l.Parish,
+                District = l.District,
+                Description = l.Description,
+                Latitude = l.Location != null ? l.Location.Latitude : null,
+                Longitude = l.Location != null ? l.Location.Longitude : null,
+                Bedrooms = l.Bedrooms,
+                Bathrooms = l.Bathrooms,
+                AreaM2 = l.AreaM2,
+                LandAreaM2 = l.LandAreaM2,
+                Images = l.Images
+                    .OrderBy(i => i.SortOrder)
+                    .Select(i => i.Url)
+                    .ToList(),
+                PrimaryImage = l.Images
+                    .Where(i => i.IsPrimary)
+                    .Select(i => new ListingImageDto
+                    {
+                        Id = i.Id,
+                        Url = i.Url,
+                        ThumbnailUrl = i.ThumbnailUrl,
+                        AltText = i.AltText,
+                        IsPrimary = i.IsPrimary,
+                        SortOrder = i.SortOrder,
+                    })
+                    .FirstOrDefault(),
+                Features = l.Features
+                    .OrderBy(f => f.SortOrder)
+                    .Select(f => f.Name)
+                    .ToList(),
+                ListingUrl = l.ListingUrl,
+                Source = l.Source,
+                SourceId = l.SourceId,
+                AgencyName = l.Agency != null ? l.Agency.Name : null,
+                AgencyLogo = l.Agency != null ? l.Agency.LogoUrl : null,
+                AgencyPhone = l.Agency != null ? l.Agency.ContactPhone : null,
+                AgencyEmail = l.Agency != null ? l.Agency.ContactEmail : null,
+                AgencyWebsiteUrl = l.Agency != null ? l.Agency.WebsiteUrl : null,
+                PublishedAt = l.PublishedAt,
+                CreatedAt = l.CreatedAt,
+                UpdatedAt = l.UpdatedAt,
+            })
+            .FirstOrDefaultAsync(ct);
+
+        if (listing is null)
+            return NotFound(new { error = "Listing not found.", id });
+
+        return Ok(listing);
+    }
+
+    /// <summary>
     /// Returns active listings within a bounding box as a GeoJSON FeatureCollection.
     /// Required query params: swLat, swLng, neLat, neLng.
     /// Optional filters: city, type, priceType, minPrice, maxPrice, minBedrooms.

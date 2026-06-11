@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Heart, Home, MapPin, Bed } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { Property } from '@/types/api'
+import type { ListingSummary } from '@/types/api'
 
 const TYPE_LABELS: Record<string, string> = {
   house: 'Casa',
@@ -17,17 +17,17 @@ const TRANSACTION_LABELS: Record<string, string> = {
 }
 
 export interface ListingCardProps {
-  property: Property
+  property: ListingSummary
   onFavoriteToggle?: (id: string) => void
 }
 
 export default function ListingCard({ property, onFavoriteToggle }: ListingCardProps) {
   const [isFavorited, setIsFavorited] = useState(false)
 
-  const { id, title, price, type, transaction, bedrooms, areaM2, city, parish, images } =
+  const { id, title, price, type, transaction, bedrooms, areaM2, city, parish, primaryImage, agency } =
     property
 
-  const imageUrl = images?.[0]
+  const imageUrl = primaryImage?.thumbnailUrl || primaryImage?.url
   const location = [parish, city].filter(Boolean).join(', ') || 'Pombal'
   const typeLabel = TYPE_LABELS[type] || type
   const transactionLabel = TRANSACTION_LABELS[transaction] || transaction
@@ -114,6 +114,27 @@ export default function ListingCard({ property, onFavoriteToggle }: ListingCardP
             {transactionLabel}
           </span>
         </div>
+
+        {/* Agency */}
+        {agency && (
+          <div className="pt-2 border-t border-gray-100">
+            <p className="text-xs text-gray-400 truncate">
+              {agency.websiteUrl ? (
+                <a
+                  href={agency.websiteUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-emerald-600 transition-colors"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {agency.name}
+                </a>
+              ) : (
+                agency.name
+              )}
+            </p>
+          </div>
+        )}
       </div>
     </div>
   )

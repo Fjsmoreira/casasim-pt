@@ -21,7 +21,7 @@ import FilterSidebar, { FilterMobileTrigger } from '@/components/FilterSidebar'
 import ListingCard from '@/components/listing/ListingCard'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, ArrowRight, Search, AlertCircle, RefreshCw } from 'lucide-react'
-import type { Property } from '@/types/api'
+import type { ListingSummary } from '@/types/api'
 
 /* ─────── Skeleton card for loading state ─────── */
 
@@ -213,7 +213,7 @@ export default function SearchPage() {
     pageSize: 12,
   })
 
-  const properties: Property[] = data?.items ?? []
+  const properties: ListingSummary[] = data?.items ?? []
   const totalPages = data?.totalPages ?? 1
   const totalCount = data?.totalCount ?? 0
   const isInitialLoad = isLoading && !data

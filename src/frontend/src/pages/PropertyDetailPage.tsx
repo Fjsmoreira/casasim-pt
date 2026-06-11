@@ -9,6 +9,7 @@ import PropertyDescription from '@/components/PropertyDescription'
 import PropertyFeatures from '@/components/PropertyFeatures'
 import PropertyLocationMap, { LocationUnavailable } from '@/components/PropertyLocationMap'
 import AgencyCard from '@/components/AgencyCard'
+import type { ListingDetail } from '@/types/api'
 
 export default function PropertyDetailPage() {
   const { id } = useParams()
