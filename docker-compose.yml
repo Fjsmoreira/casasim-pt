@@ -11,7 +11,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER:-casasim}\" -d \"$${POSTGRES_DB:-casasim}\""]
       interval: 5s
       timeout: 5s
       retries: 60
@@ -24,6 +24,7 @@ services:
     environment:
       ConnectionStrings__DefaultConnection: Host=db;Port=5432;Database=casasim;Username=${POSTGRES_USER:-casasim};Password=${POSTGRES_PASSWORD:-changeme}
       ASPNETCORE_ENVIRONMENT: Production
+      AdminSettings__ApiKey: ${AdminSettings__ApiKey:?AdminSettings__ApiKey is required}
     depends_on:
       - db
     expose:
