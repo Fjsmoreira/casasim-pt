@@ -3,6 +3,9 @@ using CasaSim.Api.Services;
 using CasaSim.Core.Interfaces;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using Serilog;
 using Serilog.Context;
 using Serilog.Formatting.Json;
@@ -59,6 +62,31 @@ try
             .AllowAnyHeader()
             .AllowAnyMethod());
     });
+
+    // OpenTelemetry — distributed tracing
+    var otelEndpoint = Environment.GetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT");
+    builder.Services.AddOpenTelemetry()
+        .ConfigureResource(resource => resource
+            .AddService("CasaSim.Api")
+            .AddAttributes(new Dictionary<string, object>
+            {
+                ["deployment.environment"] = builder.Environment.EnvironmentName
+            }))
+        .WithTracing(tracing =>
+        {
+            tracing
+                .AddAspNetCoreInstrumentation()
+                .AddHttpClientInstrumentation()
+                .AddNpgsql();
+
+            // Only export via OTLP when an endpoint is explicitly configured.
+            // Without this, traces are collected in-process but discarded —
+            // no-op and safe for local development.
+            if (!string.IsNullOrEmpty(otelEndpoint))
+            {
+                tracing.AddOtlpExporter(o => o.Endpoint = new Uri(otelEndpoint));
+            }
+        });
 
     // Application services
     builder.Services.AddScoped<CasaSim.Api.Services.IListingQueryService, CasaSim.Api.Services.ListingQueryService>();
