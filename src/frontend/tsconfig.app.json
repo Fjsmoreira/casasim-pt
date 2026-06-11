@@ -16,9 +16,6 @@
     "jsx": "react-jsx",
 
     /* Path aliases */
-    "paths": {
-      "@/*": ["./src/*"]
-    },
 
     /* Linting */
     "noUnusedLocals": true,
