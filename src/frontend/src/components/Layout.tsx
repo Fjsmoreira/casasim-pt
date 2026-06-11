@@ -15,6 +15,12 @@ export default function Layout() {
             <Link to="/search" className="hover:text-emerald-700 transition-colors">
               Imóveis
             </Link>
+            <Link to="/map" className="hover:text-emerald-700 transition-colors">
+              Mapa
+            </Link>
+            <Link to="/admin" className="hover:text-emerald-700 transition-colors">
+              Admin
+            </Link>
           </div>
         </nav>
       </header>
