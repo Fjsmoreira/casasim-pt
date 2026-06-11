@@ -7,9 +7,11 @@ export function useMapListings() {
     queryKey: ['map-listings'],
     queryFn: async () => {
       const { data } = await apiClient.get<MapPropertiesResponse>(
-        '/properties/map',
+        '/listings/geojson',
+        { params: { swLat: 38, swLng: -9.5, neLat: 42, neLng: -6 } },
       )
       return data
     },
+    staleTime: 5 * 60 * 1000,
   })
 }

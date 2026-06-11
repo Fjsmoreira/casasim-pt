@@ -17,6 +17,7 @@ export interface Property {
   district?: string
   description?: string
   images: string[]
+  features?: string[]
   listingUrl?: string
   latitude?: number
   longitude?: number
@@ -24,6 +25,10 @@ export interface Property {
   updatedAt?: string
   source?: string
   sourceId?: string
+  agencyName?: string
+  agencyLogo?: string
+  agencyPhone?: string
+  agencyEmail?: string
 }
 
 /** Search / filter parameters sent to GET /api/properties */
@@ -61,11 +66,14 @@ export interface MapPropertiesResponse {
     }
     properties: {
       id: string
-      title: string
       price: number
-      type: string
-      transaction: string
+      price_type: string
+      currency: string
+      property_type: string
+      status: string
+      city?: string
       bedrooms?: number
+      thumbnail?: string
     }
   }>
 }
