@@ -8,7 +8,7 @@ import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png'
 import markerIcon from 'leaflet/dist/images/marker-icon.png'
 import markerShadow from 'leaflet/dist/images/marker-shadow.png'
 
-delete (L.Icon.Default.prototype as any)._getIconUrl
+delete (L.Icon.Default.prototype as { _getIconUrl?: unknown })._getIconUrl
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: markerIcon2x,
   iconUrl: markerIcon,
@@ -144,6 +144,8 @@ export default function SearchPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const filterStore = useFilterStore()
   const filterParams = filterStore.toParams()
+  const pageFromUrl = searchParams.get('page') ? Number(searchParams.get('page')) : 1
+  const [page, setPage] = useState(pageFromUrl)
 
   /* ── Sync URL → store on mount / URL change ── */
   useEffect(() => {
@@ -194,8 +196,6 @@ export default function SearchPage() {
   }, [paramsKey, setSearchParams])
 
   /* ── Sync page → URL ── */
-  const pageFromUrl = searchParams.get('page') ? Number(searchParams.get('page')) : 1
-  const [page, setPage] = useState(pageFromUrl)
   useEffect(() => {
     setSearchParams(
       (prev) => {
@@ -249,7 +249,7 @@ export default function SearchPage() {
       {/* ── Error ── */}
       {isError && !isInitialLoad && (
         <ErrorState
-          message={(error as any)?.message ?? 'Ocorreu um erro inesperado ao carregar a listagem.'}
+          message={error instanceof Error ? error.message : 'Ocorreu um erro inesperado ao carregar a listagem.'}
           onRetry={handleRetry}
         />
       )}
