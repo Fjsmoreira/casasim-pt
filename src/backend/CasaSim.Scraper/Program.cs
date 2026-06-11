@@ -25,6 +25,7 @@ var host = Host.CreateDefaultBuilder(args)
         }
 
         // Scraper services
+        services.AddScoped<ScrapeLoggingService>();
         services.AddScoped<RemaxScraper>();
         services.AddScoped<RemaxListingParser>();
         services.AddScoped<ListingUpsertService>();

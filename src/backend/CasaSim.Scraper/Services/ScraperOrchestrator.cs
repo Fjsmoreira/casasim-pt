@@ -80,15 +80,33 @@ internal sealed class ScraperOrchestrator : BackgroundService
 
         _logger.LogInformation("Scraping {Agency}", agencyName);
 
+        // ── Scrape logging ───────────────────────────────────
+        var logging = services.GetRequiredService<ScrapeLoggingService>();
+        var agencyId = await logging.ResolveAgencyIdAsync(agencySlug, ct);
+        var logId = await logging.StartLogAsync(
+            agencyName,
+            sourceUrl: null,
+            agencyId: agencyId,
+            ct: ct);
+
+        IReadOnlyList<Core.Models.Property> properties;
         try
         {
             // ── Scrape ────────────────────────────────────────
-            var properties = await scraper.ScrapeAsync(ct);
+            properties = await scraper.ScrapeAsync(ct);
 
             _logger.LogInformation("Scraped {Count} properties from {Agency}", properties.Count, agencyName);
 
             if (properties.Count == 0)
+            {
+                await logging.CompleteLogAsync(logId,
+                    listingsFound: 0,
+                    listingsCreated: 0,
+                    listingsUpdated: 0,
+                    listingsRemoved: 0,
+                    ct: ct);
                 return;
+            }
 
             // ── Upsert ────────────────────────────────────────
             var upsertService = services.GetRequiredService<ListingUpsertService>();
@@ -97,10 +115,22 @@ internal sealed class ScraperOrchestrator : BackgroundService
             _logger.LogInformation(
                 "{Agency}: {Created} created, {Updated} updated, {Skipped} skipped",
                 agencyName, result.Created, result.Updated, result.Skipped);
+
+            await logging.CompleteLogAsync(logId,
+                listingsFound: properties.Count,
+                listingsCreated: result.Created,
+                listingsUpdated: result.Updated,
+                listingsRemoved: 0,
+                ct: ct);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to scrape/upsert {Agency}", agencyName);
+
+            await logging.FailLogAsync(logId,
+                errorMessage: ex.Message,
+                errorDetails: ex.ToString(),
+                ct: ct);
         }
     }
 }
