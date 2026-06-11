@@ -277,10 +277,32 @@ internal sealed class ScraperOrchestrator : BackgroundService
 
             _logger.LogError(ex, "Failed to scrape/upsert {Agency}", agencyName);
 
-            await logging.FailLogAsync(logId,
-                errorMessage: ex.Message,
-                errorDetails: ex.ToString(),
-                ct: ct);
+            try
+            {
+                // Reset EF Core change tracker so FailLogAsync doesn't inherit
+                // a corrupted state from the failed upsert.
+                if (services.GetRequiredService<CasaSim.Api.AppDbContext>() is { } db)
+                {
+                    db.ChangeTracker.Clear();
+                }
+            }
+            catch
+            {
+                // Best-effort — if Clear() fails, FailLogAsync may also fail
+                // but that's handled next.
+            }
+
+            try
+            {
+                await logging.FailLogAsync(logId,
+                    errorMessage: ex.Message,
+                    errorDetails: ex.ToString(),
+                    ct: ct);
+            }
+            catch (Exception failEx)
+            {
+                _logger.LogError(failEx, "Failed to write error log for {Agency}", agencyName);
+            }
         }
         finally
         {
