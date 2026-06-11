@@ -1,0 +1,63 @@
+{
+  "id": 791280,
+  "price": 25500,
+  "asset_type": "land",
+  "ad_type": "sell",
+  "price_per_sq": 141.666666666667,
+  "title": {
+    "en": "Charming Agroforestry Land in Vila C\u00e3, Pombal",
+    "es": "Terreno Agroforestal en Vila C\u00e3, Pombal - 180m\u00b2 por 25,500\u20ac",
+    "fr": "Terrain agroforestier \u00e0 Vila C\u00e3, Pombal - 180m\u00b2 \u00e0 saisir !",
+    "pt": "Terreno Agroflorestal em Vila C\u00e3, Pombal - 180m\u00b2 por 25.500\u20ac"
+  },
+  "link": "https://www.century21.pt/ref/0739-04552",
+  "reference": "0739-04552",
+  "price_hidden": false,
+  "gross_area": 180,
+  "useful_area": null,
+  "number_of_rooms": null,
+  "number_of_wcs": null,
+  "number_of_parking_spots": null,
+  "characteristics": [],
+  "points_of_interest": null,
+  "divisions": null,
+  "lat": 39.8733117,
+  "lng": -8.5893326,
+  "address": "3100-806 Pombal, Portugal",
+  "country": "pt",
+  "ad_1_id": "10",
+  "ad_2_id": "1015",
+  "ad_3_id": "101514",
+  "ad_4_id": "101514001",
+  "zones_ids": [],
+  "images": [
+    "https://images.century21.pt/9f90596c-cb56-4728-8a2d-442f48009a71/WhatsAppImage2026-05-22at14.27.2017.webp",
+    "https://images.century21.pt/8cc6688f-2a4e-40f9-a57d-e2547de4e003/WhatsAppImage2026-05-22at14.27.2019.webp",
+    "https://images.century21.pt/2cc8d581-d8f3-4288-acee-3ecf9fa0021d/WhatsAppImage2026-05-22at14.27.16.webp",
+    "https://images.century21.pt/da215060-51f3-4eb7-9eda-46dece8a2622/BUpi2037page-0001(1).webp"
+  ],
+  "entered_market": "2026-05-25T00:00:00.000Z",
+  "agency_license_number": "6451",
+  "commission_value": 2550,
+  "commission_percentage": 10,
+  "virtual_tour_link": null,
+  "video_url": null,
+  "previous_price": null,
+  "previous_price_per_sq": null,
+  "agent": {
+    "id": "d21c9f7c-f5d7-4dc5-a698-c72b90fad52b",
+    "link": "https://www.century21.pt/consultor-imobiliario/paulo-pacheco",
+    "name": "Paulo Pacheco",
+    "image": "https://brumjtydtlxhooqrrsch.supabase.co/storage/v1/object/public/avatars/agent-photo_4804a03c-7e12-4323-8a47-2cb27d3f8349.png",
+    "email": "paulo.pacheco@century21.pt",
+    "phone": "934430772",
+    "handler": "paulo-pacheco"
+  },
+  "agency": {
+    "id": "03ef30cb-cd34-437a-81cf-c915f97d596a",
+    "link": "https://www.century21.pt/agencias-imobiliarias/pmpaiva",
+    "name": "CENTURY 21 P.M. Paiva & Associados",
+    "handler": "pmpaiva",
+    "license_number": "6451"
+  }
+}

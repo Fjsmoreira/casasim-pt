@@ -1,0 +1,112 @@
+{
+  "id": 776109,
+  "price": 80000,
+  "asset_type": "urban_land",
+  "ad_type": "sell",
+  "price_per_sq": 249.221183800623,
+  "title": {
+    "en": "Urban land ||At the gates of Pombal ",
+    "es": "Terreno urbano || A las puertas de Pombal ",
+    "fr": "Terrain urbain || Aux portes de Pombal ",
+    "pt": "Terreno Urbano ||  \u00c1s Portas de Pombal "
+  },
+  "link": "https://www.century21.pt/ref/C0381-00872",
+  "reference": "C0381-00872",
+  "price_hidden": false,
+  "gross_area": 163,
+  "useful_area": 160,
+  "number_of_rooms": null,
+  "number_of_wcs": null,
+  "number_of_parking_spots": 4,
+  "characteristics": [
+    "disabled_accessibility",
+    "electricity",
+    "good_light_exposure",
+    "good_location",
+    "load_unload_accessibility",
+    "near_amenities",
+    "near_bank",
+    "near_bus_station",
+    "near_church",
+    "near_city_center",
+    "near_commercial_area",
+    "near_fire_station",
+    "near_gas_station",
+    "near_green_spaces",
+    "near_highway",
+    "near_historic_area",
+    "near_kindergarten",
+    "near_market",
+    "near_pharmacy",
+    "near_police",
+    "near_public_place",
+    "near_railway_station",
+    "near_restaurants",
+    "near_sports_complex",
+    "near_taxi_rank",
+    "open_space",
+    "road_access",
+    "sanitation",
+    "tap_water",
+    "water"
+  ],
+  "points_of_interest": [
+    {
+      "name": "Gomes",
+      "category": "Caf\u00e9",
+      "distance": 0.78
+    },
+    {
+      "name": "Platano",
+      "category": "Restaurante",
+      "distance": 0.89
+    },
+    {
+      "name": "Churrasqueira das Leais",
+      "category": "Restaurante",
+      "distance": 0.01
+    }
+  ],
+  "divisions": null,
+  "lat": 39.8994407157108,
+  "lng": -8.64094018936157,
+  "address": "R. Sao Joao 11, 3100 Pombal, Portugal",
+  "country": "pt",
+  "ad_1_id": "10",
+  "ad_2_id": "1015",
+  "ad_3_id": "101509",
+  "ad_4_id": "101509013",
+  "zones_ids": [],
+  "images": [
+    "https://images.century21.pt/7f07de83-0668-4e7c-b214-eae768261db9/WhatsAppImage2026-03-05at17.31.34.jpeg",
+    "https://images.century21.pt/51616762-6fc5-47f0-a986-7a5485d963c0/4.jpeg",
+    "https://images.century21.pt/61f2cf74-0485-4e5e-ba3d-b7fa4673dbc4/2.jpeg",
+    "https://images.century21.pt/9d371487-1129-429b-9a15-930934a6af67/3.jpeg",
+    "https://images.century21.pt/94b3947a-23c5-4923-af7a-4e04185042b2/1.jpeg",
+    "https://images.century21.pt/a1e14847-620d-48f7-8cf4-2e476c74b8ae/WhatsAppImage2026-03-06at19.02.27.jpeg"
+  ],
+  "entered_market": "2026-03-06T00:00:00.000Z",
+  "agency_license_number": "15967",
+  "commission_value": 5000,
+  "commission_percentage": 6.25,
+  "virtual_tour_link": null,
+  "video_url": null,
+  "previous_price": null,
+  "previous_price_per_sq": null,
+  "agent": {
+    "id": "58105a25-b856-4b76-ad64-3549a8586b2b",
+    "link": "https://www.century21.pt/consultor-imobiliario/margaridafrancisco",
+    "name": "Margarida  Francisco",
+    "image": "https://brumjtydtlxhooqrrsch.supabase.co/storage/v1/object/public/avatars/agent-photo_5a243e23-7d9b-4176-8585-86fae1ce6de3.png",
+    "email": "margarida.francisco@century21.pt",
+    "phone": "+351916727999",
+    "handler": "margaridafrancisco"
+  },
+  "agency": {
+    "id": "a0430c61-87ca-463b-96a6-6d330b116917",
+    "link": "https://www.century21.pt/agencias-imobiliarias/alianca",
+    "name": "CENTURY 21 Alian\u00e7a",
+    "handler": "alianca",
+    "license_number": "15967"
+  }
+}
