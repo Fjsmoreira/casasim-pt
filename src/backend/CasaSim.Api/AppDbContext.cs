@@ -49,6 +49,41 @@ public sealed class AppDbContext : DbContext
               .HasMaxLength(50);
 
         entity.HasIndex(e => e.Slug).IsUnique();
+
+        // Seed agencies
+        var now = new DateTimeOffset(2026, 6, 11, 0, 0, 0, TimeSpan.Zero);
+        entity.HasData(
+            new Agency
+            {
+                Id = Guid.Parse("a1000000-0000-0000-0000-000000000001"),
+                Name = "Remax Pombal",
+                Slug = "remax-pombal",
+                WebsiteUrl = "https://www.remax.pt",
+                IsActive = true,
+                CreatedAt = now,
+                UpdatedAt = now,
+            },
+            new Agency
+            {
+                Id = Guid.Parse("a1000000-0000-0000-0000-000000000002"),
+                Name = "Century21 Pombal",
+                Slug = "century21-pombal",
+                WebsiteUrl = "https://www.century21.pt",
+                IsActive = true,
+                CreatedAt = now,
+                UpdatedAt = now,
+            },
+            new Agency
+            {
+                Id = Guid.Parse("a1000000-0000-0000-0000-000000000003"),
+                Name = "ERA Pombal",
+                Slug = "era-pombal",
+                WebsiteUrl = "https://www.era.pt",
+                IsActive = true,
+                CreatedAt = now,
+                UpdatedAt = now,
+            }
+        );
     }
 
     private static void ConfigureListing(EntityTypeBuilder<Listing> entity)
