@@ -1,7 +1,14 @@
 import { useParams, Link } from 'react-router-dom'
 import { useListing } from '@/hooks/useListing'
-import { ArrowLeft, Loader2, Home, AlertTriangle, MapPin, BedDouble, Bath, Maximize2, LandPlot, Calendar, ExternalLink } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { ArrowLeft, Loader2, Home, AlertTriangle, Calendar } from 'lucide-react'
+
+import PropertyGallery from '@/components/PropertyGallery'
+import PropertyHeader from '@/components/PropertyHeader'
+import PropertyFacts from '@/components/PropertyFacts'
+import PropertyDescription from '@/components/PropertyDescription'
+import PropertyFeatures from '@/components/PropertyFeatures'
+import PropertyLocationMap, { LocationUnavailable } from '@/components/PropertyLocationMap'
+import AgencyCard from '@/components/AgencyCard'
 
 export default function PropertyDetailPage() {
   const { id } = useParams()
@@ -9,64 +16,17 @@ export default function PropertyDetailPage() {
 
   // ── 404 state ──────────────────────────────────────────────
   if (isError && error && 'response' in error && (error as { response: { status: number } }).response?.status === 404) {
-    return (
-      <NotFoundPage />
-    )
+    return <NotFoundPage />
   }
 
   // ── loading state ─────────────────────────────────────────
   if (isLoading) {
-    return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="animate-pulse space-y-6">
-          {/* Image skeleton */}
-          <div className="h-72 sm:h-96 bg-gray-200 rounded-xl" />
-          {/* Title skeleton */}
-          <div className="space-y-3">
-            <div className="h-8 bg-gray-200 rounded w-2/3" />
-            <div className="h-6 bg-gray-200 rounded w-1/3" />
-          </div>
-          {/* Details skeleton */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-20 bg-gray-200 rounded-lg" />
-            ))}
-          </div>
-          {/* Description skeleton */}
-          <div className="space-y-2">
-            <div className="h-4 bg-gray-200 rounded w-full" />
-            <div className="h-4 bg-gray-200 rounded w-5/6" />
-            <div className="h-4 bg-gray-200 rounded w-3/4" />
-            <div className="h-4 bg-gray-200 rounded w-2/3" />
-          </div>
-        </div>
-
-        {/* Screen‑reader live region */}
-        <span className="sr-only" role="status">A carregar detalhes do imóvel...</span>
-      </div>
-    )
+    return <LoadingSkeleton />
   }
 
   // ── generic error state ───────────────────────────────────
   if (isError) {
-    return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <AlertTriangle className="h-16 w-16 text-red-400 mb-4" />
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Erro ao carregar o imóvel</h2>
-          <p className="text-gray-500 mb-6 max-w-md">
-            Não foi possível carregar os detalhes deste imóvel. Verifique a sua ligação à internet e tente novamente.
-          </p>
-          <Link
-            to={`/listings/${id}`}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium"
-          >
-            <Loader2 className="h-4 w-4" />
-            Tentar novamente
-          </Link>
-        </div>
-      </div>
-    )
+    return <ErrorPage id={id!} />
   }
 
   // ── edge case: no data after successful fetch ────────────
@@ -74,11 +34,11 @@ export default function PropertyDetailPage() {
     return <NotFoundPage />
   }
 
-  // ── success state ────────────────────────────────────────
   const {
     title,
     price,
     transaction,
+    type,
     description,
     images,
     bedrooms,
@@ -88,9 +48,16 @@ export default function PropertyDetailPage() {
     city,
     parish,
     district,
+    features,
     listingUrl,
     source,
+    latitude,
+    longitude,
     createdAt,
+    agencyName,
+    agencyLogo,
+    agencyPhone,
+    agencyEmail,
   } = listing
 
   const formatter = new Intl.NumberFormat('pt-PT', {
@@ -110,87 +77,65 @@ export default function PropertyDetailPage() {
         Voltar para resultados
       </Link>
 
-      {/* Image gallery — single image placeholder for now */}
+      {/* Gallery */}
       {images && images.length > 0 && (
         <div className="mb-8">
-          <img
-            src={images[0]}
-            alt={title}
-            className="w-full h-72 sm:h-96 object-cover rounded-xl"
-          />
+          <PropertyGallery images={images} title={title} />
         </div>
       )}
 
-      {/* Title & price */}
-      <div className="mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
-          {title}
-        </h1>
-        <div className="flex items-center gap-3">
-          <span className="text-2xl font-bold text-emerald-700">
-            {formatter.format(price)}
-          </span>
-          <span className={cn(
-            'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium',
-            transaction === 'sale' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700',
-          )}>
-            {transaction === 'sale' ? 'Venda' : 'Arrendamento'}
-          </span>
-        </div>
-      </div>
+      {/* Header: title, price, badge, location, source link */}
+      <PropertyHeader
+        title={title}
+        price={price}
+        transaction={transaction}
+        parish={parish}
+        city={city}
+        district={district}
+        listingUrl={listingUrl}
+        source={source}
+      />
 
-      {/* Key details grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-        {bedrooms !== undefined && (
-          <DetailCard icon={<BedDouble className="h-5 w-5" />} label="Quartos" value={bedrooms} />
-        )}
-        {bathrooms !== undefined && (
-          <DetailCard icon={<Bath className="h-5 w-5" />} label="Casas de banho" value={bathrooms} />
-        )}
-        {areaM2 !== undefined && (
-          <DetailCard icon={<Maximize2 className="h-5 w-5" />} label="Área útil" value={`${areaM2} m²`} />
-        )}
-        {landAreaM2 !== undefined && (
-          <DetailCard icon={<LandPlot className="h-5 w-5" />} label="Terreno" value={`${landAreaM2} m²`} />
-        )}
-      </div>
-
-      {/* Location */}
-      {(city || parish || district) && (
-        <div className="flex items-start gap-2 mb-6 text-gray-600">
-          <MapPin className="h-5 w-5 mt-0.5 shrink-0 text-gray-400" />
-          <p className="text-sm">
-            {[parish, city, district].filter(Boolean).join(', ')}
-          </p>
-        </div>
-      )}
+      {/* Facts grid */}
+      <PropertyFacts
+        bedrooms={bedrooms}
+        bathrooms={bathrooms}
+        areaM2={areaM2}
+        landAreaM2={landAreaM2}
+        propertyType={type}
+        createdAt={createdAt}
+      />
 
       {/* Description */}
-      {description && (
-        <div className="mb-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-3">Descrição</h2>
-          <p className="text-gray-600 leading-relaxed whitespace-pre-line">
-            {description}
-          </p>
-        </div>
+      {description && <PropertyDescription description={description} />}
+
+      {/* Features */}
+      {features && features.length > 0 && <PropertyFeatures features={features} />}
+
+      {/* Small location map */}
+      {latitude != null && longitude != null ? (
+        <PropertyLocationMap
+          latitude={latitude}
+          longitude={longitude}
+          title={title}
+          price={formatter.format(price)}
+        />
+      ) : (
+        <LocationUnavailable />
       )}
 
-      {/* Original listing link */}
-      {listingUrl && (
-        <a
-          href={listingUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 text-sm text-emerald-600 hover:text-emerald-700 transition-colors"
-        >
-          <ExternalLink className="h-4 w-4" />
-          Ver anúncio original{source ? ` (${source})` : ''}
-        </a>
-      )}
+      {/* Agency card */}
+      <AgencyCard
+        name={agencyName}
+        logo={agencyLogo}
+        phone={agencyPhone}
+        email={agencyEmail}
+        source={source}
+      />
 
-      {/* Metadata */}
+      {/* Metadata footer */}
       {createdAt && (
-        <p className="mt-6 text-xs text-gray-400">
+        <p className="text-xs text-gray-400 mt-6 pt-6 border-t border-gray-100">
           <Calendar className="h-3 w-3 inline mr-1" />
           Publicado em {new Date(createdAt).toLocaleDateString('pt-PT')}
         </p>
@@ -199,15 +144,56 @@ export default function PropertyDetailPage() {
   )
 }
 
-// ── Sub-components ───────────────────────────────────────────
+// ── Sub-pages ────────────────────────────────────────────────
 
-function DetailCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string | number }) {
+function LoadingSkeleton() {
   return (
-    <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg border border-gray-100">
-      <div className="text-gray-400 shrink-0">{icon}</div>
-      <div>
-        <p className="text-xs text-gray-500">{label}</p>
-        <p className="text-sm font-semibold text-gray-900">{value}</p>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="animate-pulse space-y-6">
+        {/* Image skeleton */}
+        <div className="h-72 sm:h-96 bg-gray-200 rounded-xl" />
+        {/* Title skeleton */}
+        <div className="space-y-3">
+          <div className="h-8 bg-gray-200 rounded w-2/3" />
+          <div className="h-6 bg-gray-200 rounded w-1/3" />
+        </div>
+        {/* Details skeleton */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-20 bg-gray-200 rounded-lg" />
+          ))}
+        </div>
+        {/* Description skeleton */}
+        <div className="space-y-2">
+          <div className="h-4 bg-gray-200 rounded w-full" />
+          <div className="h-4 bg-gray-200 rounded w-5/6" />
+          <div className="h-4 bg-gray-200 rounded w-3/4" />
+          <div className="h-4 bg-gray-200 rounded w-2/3" />
+        </div>
+      </div>
+
+      {/* Screen‑reader live region */}
+      <span className="sr-only" role="status">A carregar detalhes do imóvel...</span>
+    </div>
+  )
+}
+
+function ErrorPage({ id }: { id: string }) {
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <AlertTriangle className="h-16 w-16 text-red-400 mb-4" />
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">Erro ao carregar o imóvel</h2>
+        <p className="text-gray-500 mb-6 max-w-md">
+          Não foi possível carregar os detalhes deste imóvel. Verifique a sua ligação à internet e tente novamente.
+        </p>
+        <Link
+          to={`/listings/${id}`}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium"
+        >
+          <Loader2 className="h-4 w-4" />
+          Tentar novamente
+        </Link>
       </div>
     </div>
   )
