@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Serilog.Context;
 
 namespace CasaSim.Scraper.Services;
 
@@ -188,11 +189,17 @@ internal sealed class ScraperOrchestrator : BackgroundService
         var agencyName = scraper.AgencyName;
         var agencySlug = ListingUpsertService.ResolveAgencySlug(agencyName);
 
+        using var scraperScope = LogContext.PushProperty("scraperName", scraper.GetType().Name);
+
         if (agencySlug is null)
         {
+            using var agencyNameScope = LogContext.PushProperty("agencyName", agencyName);
             _logger.LogWarning("No agency slug mapping for '{Name}'; skipping", agencyName);
             return;
         }
+
+        using var agencySlugScope = LogContext.PushProperty("agencySlug", agencySlug);
+        using var agencyScope = LogContext.PushProperty("agencyName", agencyName);
 
         _logger.LogInformation("Scraping {Agency}", agencyName);
 
