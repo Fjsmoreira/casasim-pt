@@ -146,6 +146,8 @@ dotnet run --project src/backend/CasaSim.Scraper/CasaSim.Scraper.csproj
 
 ## Tests and checks
 
+For route details, admin API-key usage, and deployment smoke checks, see `docs/api-and-deployment.md`.
+
 Backend:
 
 ```bash

@@ -86,6 +86,8 @@ dotnet run --project src/backend/CasaSim.Api/CasaSim.Api.csproj
 
 Swagger is registered only when `ASPNETCORE_ENVIRONMENT=Development`; it is not expected to be public in production.
 
+For the full route/operator reference, including current query parameters, admin auth, and deployment checks, see `docs/api-and-deployment.md`.
+
 ### Core domain: `src/backend/CasaSim.Core/`
 
 Shared domain models, entities, and interfaces used by both the API and scraper.

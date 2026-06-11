@@ -116,6 +116,8 @@ On Coolify, verify the same principle in the UI/API:
 - No public route should point directly at `api:5000`, `db:5432`, or the scraper.
 - Environment variables such as `POSTGRES_PASSWORD` and `AdminSettings__ApiKey` should come from Coolify secrets/environment, not from committed files.
 
+See `docs/api-and-deployment.md` for the API route summary, admin header contract, and deployment smoke checks.
+
 ## Safe and unsafe changes
 
 Safe:

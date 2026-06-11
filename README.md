@@ -13,6 +13,7 @@ Start here:
 - `docs/architecture.md` - application layers, project layout, data flow, and key routes.
 - `docs/local-setup.md` - verified commands for local development, tests, and Docker smoke checks.
 - `docs/networking.md` - Docker network model and why the API/database are not publicly exposed.
+- `docs/api-and-deployment.md` - API route summary, admin auth, required deployment environment, and deploy checks.
 - `docs/scrapers.md` - developer guide for adding agency scrapers, fixtures, tests, config, logging, and rate limits.
 - `docs/scrapers/` - source-specific scraper notes.
 
@@ -27,7 +28,7 @@ casasim-pt/
 ├── Dockerfile.scraper                  # Background scraper image
 ├── nginx/default.conf                  # Frontend Nginx config and /api reverse proxy
 ├── scripts/init-db.sql                 # PostgreSQL/PostGIS initialization
-├── docs/                               # Architecture, setup, networking, scraper docs
+├── docs/                               # Architecture, setup, API/deploy, networking, scraper docs
 └── src/
     ├── backend/
     │   ├── CasaSim.Core/               # Domain entities, interfaces, parsed listing models
