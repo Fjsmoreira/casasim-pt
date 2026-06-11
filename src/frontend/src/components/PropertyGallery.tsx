@@ -1,6 +1,15 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+
+const IMAGE_PLACEHOLDER =
+  "data:image/svg+xml," +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">' +
+    '<rect fill="#f3f4f6" width="400" height="300"/>' +
+    '<g transform="translate(180,125)"><circle cx="20" cy="20" r="20" fill="#d1d5db"/><rect x="0" y="50" width="40" height="30" rx="4" fill="#d1d5db"/></g>' +
+    '</svg>'
+  )
 
 interface PropertyGalleryProps {
   images: string[]
@@ -10,6 +19,11 @@ interface PropertyGalleryProps {
 export default function PropertyGallery({ images, title }: PropertyGalleryProps) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [fullscreen, setFullscreen] = useState(false)
+  const [brokenImages, setBrokenImages] = useState<Set<number>>(new Set())
+
+  const handleImageError = useCallback((index: number) => {
+    setBrokenImages((prev) => new Set(prev).add(index))
+  }, [])
 
   if (images.length === 0) return null
 
@@ -20,10 +34,11 @@ export default function PropertyGallery({ images, title }: PropertyGalleryProps)
   const main = (
     <div className="relative group">
       <img
-        src={images[currentIndex]}
+        src={brokenImages.has(currentIndex) ? IMAGE_PLACEHOLDER : images[currentIndex]}
         alt={`${title} — foto ${currentIndex + 1}`}
         className="w-full h-72 sm:h-96 object-cover rounded-xl cursor-pointer"
         onClick={() => setFullscreen(true)}
+        onError={() => handleImageError(currentIndex)}
       />
 
       {/* Navigation arrows (only if more than one image) */}
@@ -80,9 +95,10 @@ export default function PropertyGallery({ images, title }: PropertyGalleryProps)
               )}
             >
               <img
-                src={img}
+                src={brokenImages.has(i) ? IMAGE_PLACEHOLDER : img}
                 alt={`${title} — miniatura ${i + 1}`}
                 className="w-full h-full object-cover"
+                onError={() => handleImageError(i)}
               />
             </button>
           ))}
@@ -104,9 +120,10 @@ export default function PropertyGallery({ images, title }: PropertyGalleryProps)
           </button>
 
           <img
-            src={images[currentIndex]}
+            src={brokenImages.has(currentIndex) ? IMAGE_PLACEHOLDER : images[currentIndex]}
             alt={`${title} — foto ${currentIndex + 1}`}
             className="max-w-[90vw] max-h-[90vh] object-contain"
+            onError={() => handleImageError(currentIndex)}
           />
 
           {images.length > 1 && (
