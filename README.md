@@ -33,16 +33,18 @@ casasim-pt/
 ## Quick Start
 
 ```bash
-# Copy env template
+# Copy env template (edit passwords as needed)
 cp .env.example .env
 
 # Start everything
 docker compose up -d
 
-# API: http://localhost/api
-# Swagger: http://localhost/swagger
-# Frontend: http://localhost
+# Frontend:   http://localhost
+# API:        http://localhost/api (proxied via frontend/Nginx)
+# Swagger:    http://localhost/swagger
 ```
+
+The stack uses an internal networking model — only the **frontend** (port 80) is published to the host. The **API** (port 5000), **PostgreSQL** (port 5432), and **scraper** are reachable from other containers by their Docker service name (`api`, `db`, `scraper`) but are not directly accessible from the host.
 
 ## Development
 
