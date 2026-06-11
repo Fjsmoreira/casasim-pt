@@ -31,7 +31,7 @@ export interface Property {
   agencyEmail?: string
 }
 
-/** Search / filter parameters sent to GET /api/properties */
+/** Search / filter parameters sent to GET /api/listings */
 export interface ListingsParams {
   page?: number
   pageSize?: number
@@ -44,7 +44,7 @@ export interface ListingsParams {
   city?: string
 }
 
-/** Response from GET /api/properties (paginated listing) */
+/** Response from GET /api/listings (paginated listing) */
 export interface PropertyListResponse {
   items: Property[]
   total: number
@@ -52,7 +52,7 @@ export interface PropertyListResponse {
   pageSize: number
 }
 
-/** Response from GET /api/properties/:id */
+/** Response from GET /api/listings/:id */
 export type PropertyDetailResponse = Property
 
 /** Admin: single listing row in the management table */

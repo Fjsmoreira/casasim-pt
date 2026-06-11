@@ -48,7 +48,7 @@ describe('SearchPage', () => {
   it('shows empty state when no results', async () => {
     // Override the handler to return empty results for this test
     server.use(
-      http.get('/api/properties', () => {
+      http.get('/api/listings', () => {
         return HttpResponse.json(mockEmptyListResponse)
       }),
     )
@@ -62,7 +62,7 @@ describe('SearchPage', () => {
 
   it('shows error state when API call fails', async () => {
     server.use(
-      http.get('/api/properties', () => {
+      http.get('/api/listings', () => {
         return HttpResponse.json(
           { message: 'Erro ao carregar imóveis' },
           { status: 500 },
@@ -81,7 +81,7 @@ describe('SearchPage', () => {
 
   it('has a retry button in error state', async () => {
     server.use(
-      http.get('/api/properties', () => {
+      http.get('/api/listings', () => {
         return HttpResponse.json(
           { message: 'Erro ao carregar imóveis' },
           { status: 500 },
@@ -121,7 +121,7 @@ describe('SearchPage', () => {
 
   it('shows pagination when there are enough items for multiple pages', async () => {
     server.use(
-      http.get('/api/properties', () => {
+      http.get('/api/listings', () => {
         return HttpResponse.json({
           ...mockListResponse,
           total: 25,

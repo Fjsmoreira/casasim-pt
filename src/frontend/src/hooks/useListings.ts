@@ -6,7 +6,7 @@ export function useListings(params: ListingsParams = {}) {
   return useQuery({
     queryKey: ['listings', params],
     queryFn: async () => {
-      const { data } = await apiClient.get<PropertyListResponse>('/properties', {
+      const { data } = await apiClient.get<PropertyListResponse>('/listings', {
         params,
       })
       return data

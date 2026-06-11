@@ -1,71 +1,33 @@
-using CasaSim.Core.Data.Entities;
+using CasaSim.Api.Models;
+using CasaSim.Api.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace CasaSim.Api.Controllers;
 
+/// <summary>
+/// Backwards-compatible alias for older frontend builds that still call /api/properties.
+/// The canonical public endpoint is /api/listings.
+/// </summary>
 [ApiController]
 [Route("api/properties")]
 public sealed class PropertiesController : ControllerBase
 {
-    private readonly AppDbContext _db;
+    private readonly IListingQueryService _listingQuery;
 
-    public PropertiesController(AppDbContext db) => _db = db;
+    public PropertiesController(IListingQueryService listingQuery) => _listingQuery = listingQuery;
 
     [HttpGet]
-    public async Task<ActionResult<IReadOnlyList<Listing>>> Search(
-        [FromQuery] string? city,
-        [FromQuery] ListingPropertyType? type,
-        [FromQuery] ListingPriceType? priceType,
-        [FromQuery] decimal? minPrice,
-        [FromQuery] decimal? maxPrice,
-        [FromQuery] int? minBedrooms,
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20)
+    public async Task<ActionResult<PagedResult<ListingSummaryDto>>> Search(
+        [FromQuery] ListingSearchRequest request,
+        CancellationToken ct)
     {
-        var query = _db.Listings.AsQueryable();
-
-        if (!string.IsNullOrEmpty(city))
-            query = query.Where(l => l.City != null && l.City.Contains(city));
-        if (type.HasValue)
-            query = query.Where(l => l.PropertyType == type.Value);
-        if (priceType.HasValue)
-            query = query.Where(l => l.PriceType == priceType.Value);
-        if (minPrice.HasValue)
-            query = query.Where(l => l.Price >= minPrice.Value);
-        if (maxPrice.HasValue)
-            query = query.Where(l => l.Price <= maxPrice.Value);
-        if (minBedrooms.HasValue)
-            query = query.Where(l => l.Bedrooms >= minBedrooms.Value);
-
-        query = query.Include(l => l.Agency)
-                     .Include(l => l.Location)
-                     .Include(l => l.Images)
-                     .Include(l => l.Features)
-                     .OrderByDescending(l => l.UpdatedAt);
-
-        var total = await query.CountAsync();
-        var items = await query
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync();
-
-        Response.Headers["X-Total-Count"] = total.ToString();
-
-        return Ok(new { items, total, page, pageSize });
+        var result = await _listingQuery.SearchAsync(request, ct);
+        return Ok(result);
     }
 
     [HttpGet("{id:guid}")]
-    public async Task<ActionResult<Listing>> GetById(Guid id)
+    public IActionResult GetById(Guid id)
     {
-        var listing = await _db.Listings
-            .Include(l => l.Agency)
-            .Include(l => l.Location)
-            .Include(l => l.Images.OrderBy(i => i.SortOrder))
-            .Include(l => l.Features)
-            .FirstOrDefaultAsync(l => l.Id == id);
-
-        if (listing is null) return NotFound();
-        return Ok(listing);
+        return RedirectPermanent($"/api/listings/{id}");
     }
 }

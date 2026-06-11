@@ -2,8 +2,8 @@ import { http, HttpResponse } from 'msw'
 import { mockListResponse, mockEmptyListResponse, mockProperty, mockGeoJson, mockEmptyGeoJson } from './data'
 
 export const handlers = [
-  // GET /api/properties — listings (SearchPage)
-  http.get('/api/properties', ({ request }) => {
+  // GET /api/listings — listings (SearchPage)
+  http.get('/api/listings', ({ request }) => {
     const url = new URL(request.url)
     const page = url.searchParams.get('page')
 
@@ -23,8 +23,8 @@ export const handlers = [
     return HttpResponse.json(mockListResponse)
   }),
 
-  // GET /api/properties/:id — single listing detail
-  http.get('/api/properties/:id', ({ params }) => {
+  // GET /api/listings/:id — single listing detail
+  http.get('/api/listings/:id', ({ params }) => {
     const { id } = params
 
     if (id === '404-test') {

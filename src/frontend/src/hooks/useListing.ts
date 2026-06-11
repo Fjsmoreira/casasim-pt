@@ -7,7 +7,7 @@ export function useListing(id: string) {
     queryKey: ['listing', id],
     queryFn: async () => {
       const { data } = await apiClient.get<PropertyDetailResponse>(
-        `/properties/${id}`,
+        `/listings/${id}`,
       )
       return data
     },
