@@ -1,4 +1,5 @@
-using CasaSim.Core.Models;
+using CasaSim.Core.Interfaces;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -6,10 +7,14 @@ namespace CasaSim.Scraper.Services;
 
 internal sealed class ScraperOrchestrator : BackgroundService
 {
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<ScraperOrchestrator> _logger;
 
-    public ScraperOrchestrator(ILogger<ScraperOrchestrator> logger)
+    public ScraperOrchestrator(
+        IServiceScopeFactory scopeFactory,
+        ILogger<ScraperOrchestrator> logger)
     {
+        _scopeFactory = scopeFactory;
         _logger = logger;
     }
 
@@ -19,9 +24,83 @@ internal sealed class ScraperOrchestrator : BackgroundService
 
         while (!stoppingToken.IsCancellationRequested)
         {
-            // TODO: run each registered scraper and persist results
-            _logger.LogInformation("Scrape cycle at {Time}", DateTimeOffset.UtcNow);
+            using var scope = _scopeFactory.CreateScope();
+            var services = scope.ServiceProvider;
+
+            try
+            {
+                await RunScrapeCycleAsync(services, stoppingToken);
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                break;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Scrape cycle failed");
+            }
+
+            // Wait 6 hours before next cycle
             await Task.Delay(TimeSpan.FromHours(6), stoppingToken);
+        }
+    }
+
+    private async Task RunScrapeCycleAsync(IServiceProvider services, CancellationToken ct)
+    {
+        _logger.LogInformation("Starting scrape cycle at {Time}", DateTimeOffset.UtcNow);
+
+        // ── Discover all registered scrapers ──────────────────
+        var scrapers = services.GetServices<IPropertyScraper>().ToList();
+        if (scrapers.Count == 0)
+        {
+            _logger.LogInformation("No IPropertyScraper implementations registered");
+        }
+
+        foreach (var scraper in scrapers)
+        {
+            await RunSingleScraperAsync(scraper, services, ct);
+        }
+
+        _logger.LogInformation("Scrape cycle complete");
+    }
+
+    private async Task RunSingleScraperAsync(
+        IPropertyScraper scraper,
+        IServiceProvider services,
+        CancellationToken ct)
+    {
+        var agencyName = scraper.AgencyName;
+        var agencySlug = ListingUpsertService.ResolveAgencySlug(agencyName);
+
+        if (agencySlug is null)
+        {
+            _logger.LogWarning("No agency slug mapping for '{Name}'; skipping", agencyName);
+            return;
+        }
+
+        _logger.LogInformation("Scraping {Agency}", agencyName);
+
+        try
+        {
+            // ── Scrape ────────────────────────────────────────
+            var properties = await scraper.ScrapeAsync(ct);
+
+            _logger.LogInformation("Scraped {Count} properties from {Agency}", properties.Count, agencyName);
+
+            if (properties.Count == 0)
+                return;
+
+            // ── Upsert ────────────────────────────────────────
+            var upsertService = services.GetRequiredService<ListingUpsertService>();
+            var result = await upsertService.UpsertBatchAsync(properties, agencySlug, ct);
+
+            _logger.LogInformation(
+                "{Agency}: {Created} created, {Updated} updated, {Skipped} skipped",
+                agencyName, result.Created, result.Updated, result.Skipped);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to scrape/upsert {Agency}", agencyName);
         }
     }
 }

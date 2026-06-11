@@ -202,7 +202,7 @@ public sealed class AdminController : ControllerBase
             }),
             runCounts = runCounts.ToDictionary(k => k.Status.ToString()!, v => v.Count),
             recentErrors,
-            lastRunOverall = lastRunOverall == default ? null : lastRunOverall,
+            lastRunOverall = lastRunOverall == default ? default(DateTimeOffset?) : lastRunOverall,
         });
     }
 }

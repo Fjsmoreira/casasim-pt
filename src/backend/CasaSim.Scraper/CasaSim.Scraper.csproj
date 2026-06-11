@@ -12,10 +12,14 @@
     <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
     <PackageReference Include="HtmlAgilityPack" Version="1.11.54" />
     <PackageReference Include="Polly" Version="8.0.0" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.0" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL.NetTopologySuite" Version="8.0.0" />
+    <PackageReference Include="EFCore.NamingConventions" Version="8.0.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\CasaSim.Core\CasaSim.Core.csproj" />
+    <ProjectReference Include="..\CasaSim.Api\CasaSim.Api.csproj" />
   </ItemGroup>
 
   <ItemGroup>
