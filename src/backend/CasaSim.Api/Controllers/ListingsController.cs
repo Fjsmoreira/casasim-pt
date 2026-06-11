@@ -34,6 +34,26 @@ public sealed class ListingsController : ControllerBase
     }
 
     /// <summary>
+    /// Get a single listing by its ID with full details.
+    /// </summary>
+    [HttpGet("{id:guid}")]
+    public async Task<ActionResult<object>> GetById(Guid id)
+    {
+        var listing = await _db.Listings
+            .AsNoTracking()
+            .Include(l => l.Agency)
+            .Include(l => l.Location)
+            .Include(l => l.Images.OrderBy(i => i.SortOrder))
+            .Include(l => l.Features)
+            .FirstOrDefaultAsync(l => l.Id == id);
+
+        if (listing is null)
+            return NotFound();
+
+        return Ok(listing);
+    }
+
+    /// <summary>
     /// Returns active listings within a bounding box as a GeoJSON FeatureCollection.
     /// Required query params: swLat, swLng, neLat, neLng.
     /// Optional filters: city, type, priceType, minPrice, maxPrice, minBedrooms.
