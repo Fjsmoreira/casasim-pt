@@ -1,5 +1,7 @@
 using CasaSim.Core.Interfaces;
 using CasaSim.Scraper.Configuration;
+using CasaSim.Scraper.Diagnostics;
+using System.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -179,7 +181,8 @@ internal sealed class ScraperOrchestrator : BackgroundService
     // ── Scraper execution ───────────────────────────────────────
 
     /// <summary>
-    /// Runs a single scraper through its full lifecycle, logging via ScrapeLoggingService.
+    /// Runs a single scraper through its full lifecycle, logging via ScrapeLoggingService
+    /// and emitting OpenTelemetry spans and metrics.
     /// </summary>
     private async Task RunSingleScraperAsync(
         IPropertyScraper scraper,
@@ -203,6 +206,17 @@ internal sealed class ScraperOrchestrator : BackgroundService
 
         _logger.LogInformation("Scraping {Agency}", agencyName);
 
+        // ── OpenTelemetry span ─────────────────────────────────
+        using var activity = ScraperDiagnostics.ActivitySource.StartActivity(
+            ScraperDiagnostics.SpanScraperRun,
+            ActivityKind.Internal);
+
+        activity?.SetTag(ScraperDiagnostics.TagScraper, agencyName);
+        activity?.SetTag(ScraperDiagnostics.TagAgencySlug, agencySlug);
+
+        var stopwatch = Stopwatch.StartNew();
+        var status = ScraperDiagnostics.StatusSuccess;
+
         var logging = services.GetRequiredService<ScrapeLoggingService>();
         var agencyId = await logging.ResolveAgencyIdAsync(agencySlug, ct);
         var logId = await logging.StartLogAsync(agencyName, sourceUrl: null, agencyId: agencyId, ct: ct);
@@ -213,6 +227,11 @@ internal sealed class ScraperOrchestrator : BackgroundService
             properties = await scraper.ScrapeAsync(ct);
 
             _logger.LogInformation("Scraped {Count} properties from {Agency}", properties.Count, agencyName);
+
+            // Record discovered count metric
+            ScraperDiagnostics.ListingsDiscoveredTotal.Add(properties.Count,
+                new(ScraperDiagnostics.TagScraper, agencyName),
+                new(ScraperDiagnostics.TagAgencySlug, agencySlug));
 
             if (properties.Count == 0)
             {
@@ -229,6 +248,20 @@ internal sealed class ScraperOrchestrator : BackgroundService
                 "{Agency}: {Created} created, {Updated} updated, {Skipped} skipped",
                 agencyName, result.Created, result.Updated, result.Skipped);
 
+            // Record upserted count metric
+            ScraperDiagnostics.ListingsUpsertedTotal.Add(result.Created,
+                new(ScraperDiagnostics.TagScraper, agencyName),
+                new(ScraperDiagnostics.TagAgencySlug, agencySlug),
+                new(ScraperDiagnostics.TagAction, "created"));
+            ScraperDiagnostics.ListingsUpsertedTotal.Add(result.Updated,
+                new(ScraperDiagnostics.TagScraper, agencyName),
+                new(ScraperDiagnostics.TagAgencySlug, agencySlug),
+                new(ScraperDiagnostics.TagAction, "updated"));
+            ScraperDiagnostics.ListingsUpsertedTotal.Add(result.Skipped,
+                new(ScraperDiagnostics.TagScraper, agencyName),
+                new(ScraperDiagnostics.TagAgencySlug, agencySlug),
+                new(ScraperDiagnostics.TagAction, "skipped"));
+
             await logging.CompleteLogAsync(logId,
                 listingsFound: properties.Count,
                 listingsCreated: result.Created,
@@ -238,12 +271,45 @@ internal sealed class ScraperOrchestrator : BackgroundService
         }
         catch (Exception ex)
         {
+            status = ScraperDiagnostics.StatusFail;
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+            activity?.SetTag(ScraperDiagnostics.TagErrorDetail, ex.ToString());
+
             _logger.LogError(ex, "Failed to scrape/upsert {Agency}", agencyName);
 
             await logging.FailLogAsync(logId,
                 errorMessage: ex.Message,
                 errorDetails: ex.ToString(),
                 ct: ct);
+        }
+        finally
+        {
+            stopwatch.Stop();
+            var elapsedSec = stopwatch.Elapsed.TotalSeconds;
+
+            // Record run count metric
+            ScraperDiagnostics.ScrapeRunsTotal.Add(1,
+                new(ScraperDiagnostics.TagScraper, agencyName),
+                new(ScraperDiagnostics.TagAgencySlug, agencySlug),
+                new(ScraperDiagnostics.TagStatus, status));
+
+            // Record duration histogram
+            ScraperDiagnostics.ScrapeDurationSeconds.Record(elapsedSec,
+                new(ScraperDiagnostics.TagScraper, agencyName),
+                new(ScraperDiagnostics.TagAgencySlug, agencySlug),
+                new(ScraperDiagnostics.TagStatus, status));
+
+            // Record error count if failed
+            if (status == ScraperDiagnostics.StatusFail)
+            {
+                ScraperDiagnostics.ScrapeErrorsTotal.Add(1,
+                    new(ScraperDiagnostics.TagScraper, agencyName),
+                    new(ScraperDiagnostics.TagAgencySlug, agencySlug));
+            }
+
+            // Finalize the span
+            activity?.SetTag(ScraperDiagnostics.TagStatus, status);
+            activity?.SetTag("duration_ms", stopwatch.ElapsedMilliseconds);
         }
     }
 
