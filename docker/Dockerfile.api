@@ -9,6 +9,7 @@ RUN dotnet publish -c Release -o /app
 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
+RUN apt-get update && apt-get install -y curl --no-install-recommends && rm -rf /var/lib/apt/lists/*
 COPY --from=build /app .
 EXPOSE 5000
 ENV ASPNETCORE_URLS=http://+:5000
