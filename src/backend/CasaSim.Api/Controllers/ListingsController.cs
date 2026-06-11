@@ -41,6 +41,10 @@ public sealed class ListingsController : ControllerBase
     {
         var listing = await _db.Listings
             .AsNoTracking()
+            .Include(l => l.Agency)
+            .Include(l => l.Location)
+            .Include(l => l.Images.OrderBy(i => i.SortOrder))
+            .Include(l => l.Features.OrderBy(f => f.SortOrder))
             .Where(l => l.Id == id)
             .Select(l => new ListingDetailDto
             {
@@ -52,17 +56,16 @@ public sealed class ListingsController : ControllerBase
                 PropertyType = l.PropertyType.ToString(),
                 Status = l.Status.ToString(),
                 City = l.City,
-                Parish = l.Parish,
-                District = l.District,
+                Parish = l.Location != null ? l.Location.Parish : null,
+                District = l.Location != null ? l.Location.District : null,
                 Description = l.Description,
-                Latitude = l.Location != null ? l.Location.Latitude : null,
-                Longitude = l.Location != null ? l.Location.Longitude : null,
+                Latitude = l.Location != null ? (double?)l.Location.Latitude : null,
+                Longitude = l.Location != null ? (double?)l.Location.Longitude : null,
                 Bedrooms = l.Bedrooms,
                 Bathrooms = l.Bathrooms,
                 AreaM2 = l.AreaM2,
                 LandAreaM2 = l.LandAreaM2,
                 Images = l.Images
-                    .OrderBy(i => i.SortOrder)
                     .Select(i => i.Url)
                     .ToList(),
                 PrimaryImage = l.Images
@@ -78,14 +81,11 @@ public sealed class ListingsController : ControllerBase
                     })
                     .FirstOrDefault(),
                 Features = l.Features
-                    .OrderBy(f => f.SortOrder)
                     .Select(f => f.Name)
                     .ToList(),
-                ListingUrl = l.ListingUrl,
-                Source = l.Source,
-                SourceId = l.SourceId,
+                SourceUrl = l.SourceUrl,
+                ExternalId = l.ExternalId,
                 AgencyName = l.Agency != null ? l.Agency.Name : null,
-                AgencyLogo = l.Agency != null ? l.Agency.LogoUrl : null,
                 AgencyPhone = l.Agency != null ? l.Agency.ContactPhone : null,
                 AgencyEmail = l.Agency != null ? l.Agency.ContactEmail : null,
                 AgencyWebsiteUrl = l.Agency != null ? l.Agency.WebsiteUrl : null,

@@ -39,13 +39,11 @@ public sealed class ListingDetailDto
     public List<string> Features { get; init; } = [];
 
     // --- Source / External ---
-    public string? ListingUrl { get; init; }
-    public string? Source { get; init; }
-    public string? SourceId { get; init; }
+    public string? SourceUrl { get; init; }
+    public string? ExternalId { get; init; }
 
     // --- Agency ---
     public string? AgencyName { get; init; }
-    public string? AgencyLogo { get; init; }
     public string? AgencyPhone { get; init; }
     public string? AgencyEmail { get; init; }
     public string? AgencyWebsiteUrl { get; init; }

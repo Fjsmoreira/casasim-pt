@@ -9,7 +9,6 @@ import PropertyDescription from '@/components/PropertyDescription'
 import PropertyFeatures from '@/components/PropertyFeatures'
 import PropertyLocationMap, { LocationUnavailable } from '@/components/PropertyLocationMap'
 import AgencyCard from '@/components/AgencyCard'
-import type { ListingDetail } from '@/types/api'
 
 export default function PropertyDetailPage() {
   const { id } = useParams()
@@ -50,13 +49,11 @@ export default function PropertyDetailPage() {
     parish,
     district,
     features,
-    listingUrl,
-    source,
+    sourceUrl,
     latitude,
     longitude,
     createdAt,
     agencyName,
-    agencyLogo,
     agencyPhone,
     agencyEmail,
   } = listing
@@ -93,8 +90,8 @@ export default function PropertyDetailPage() {
         parish={parish}
         city={city}
         district={district}
-        listingUrl={listingUrl}
-        source={source}
+        listingUrl={sourceUrl}
+        source={agencyName}
       />
 
       {/* Facts grid */}
@@ -128,10 +125,9 @@ export default function PropertyDetailPage() {
       {/* Agency card */}
       <AgencyCard
         name={agencyName}
-        logo={agencyLogo}
         phone={agencyPhone}
         email={agencyEmail}
-        source={source}
+        source={agencyName}
       />
 
       {/* Metadata footer */}

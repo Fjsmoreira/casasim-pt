@@ -53,11 +53,9 @@ export interface ListingDetail {
   description?: string
   images: string[]
   features?: string[]
-  listingUrl?: string
-  source?: string
-  sourceId?: string
+  sourceUrl?: string
+  externalId?: string
   agencyName?: string
-  agencyLogo?: string
   agencyPhone?: string
   agencyEmail?: string
   latitude?: number
