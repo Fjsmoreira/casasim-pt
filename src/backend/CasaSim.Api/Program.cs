@@ -29,6 +29,9 @@ try
         });
     });
 
+    // Admin authentication
+    builder.Services.AddScoped<CasaSim.Api.Auth.AdminAuthenticationFilter>();
+
     // Database
     builder.Services.AddDbContext<AppDbContext>(options =>
     {
