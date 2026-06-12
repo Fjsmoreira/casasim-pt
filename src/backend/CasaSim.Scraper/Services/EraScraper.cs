@@ -331,8 +331,18 @@ internal sealed class EraScraper : IPropertyScraper, IAgencyScraper
                 }
             }
 
-            // Fallback: try extracting from the response body
+            // Fallback: try extracting from the response body.  ERA currently
+            // renders the token as a hidden ASP.NET MVC input near the end of the
+            // page:
+            //   <input name="__RequestVerificationToken" ... value="..." />
             var body = await response.Content.ReadAsStringAsync(ct);
+            var inputToken = ExtractHiddenRequestVerificationToken(body);
+            if (!string.IsNullOrEmpty(inputToken))
+            {
+                _logger.LogDebug("Acquired ERA anti-forgery token from hidden input");
+                return inputToken;
+            }
+
             var tokenMarker = "var antiForgeryToken = '";
             var idx = body.IndexOf(tokenMarker, StringComparison.Ordinal);
             if (idx >= 0)
@@ -418,7 +428,8 @@ internal sealed class EraScraper : IPropertyScraper, IAgencyScraper
         using var doc = JsonDocument.Parse(json);
         var root = doc.RootElement;
 
-        // The response may be an array directly, or wrapped in a { data: [...] } object.
+        // The response may be an array directly, wrapped in a { data: [...] }
+        // object, or (current ERA API) a { PropertyList: [...] } object.
         JsonElement.ArrayEnumerator items;
 
         if (root.ValueKind == JsonValueKind.Array)
@@ -428,6 +439,10 @@ internal sealed class EraScraper : IPropertyScraper, IAgencyScraper
         else if (root.TryGetProperty("data", out var data) && data.ValueKind == JsonValueKind.Array)
         {
             items = data.EnumerateArray();
+        }
+        else if (root.TryGetProperty("PropertyList", out var propertyList) && propertyList.ValueKind == JsonValueKind.Array)
+        {
+            items = propertyList.EnumerateArray();
         }
         else
         {
@@ -442,7 +457,7 @@ internal sealed class EraScraper : IPropertyScraper, IAgencyScraper
 
             // Try to build the detail URL from available fields.
             // ERA detail URLs follow: /imovel/{slugified-title}-{id}
-            var detailUrl = GetStringProp(item, "Url");
+            var detailUrl = GetStringProp(item, "DetailUrl") ?? GetStringProp(item, "Url");
 
             if (string.IsNullOrEmpty(detailUrl))
             {
@@ -550,8 +565,36 @@ internal sealed class EraScraper : IPropertyScraper, IAgencyScraper
 
     private static string? GetStringProp(JsonElement el, string property)
     {
-        if (el.TryGetProperty(property, out var val) && val.ValueKind == JsonValueKind.String)
-            return val.GetString();
-        return null;
+        if (!el.TryGetProperty(property, out var val))
+            return null;
+
+        return val.ValueKind switch
+        {
+            JsonValueKind.String => val.GetString(),
+            JsonValueKind.Number => val.TryGetInt64(out var n) ? n.ToString(System.Globalization.CultureInfo.InvariantCulture) : val.GetRawText(),
+            _ => null,
+        };
+    }
+
+    private static string? ExtractHiddenRequestVerificationToken(string html)
+    {
+        const string nameMarker = "name=\"__RequestVerificationToken\"";
+        var nameIdx = html.IndexOf(nameMarker, StringComparison.OrdinalIgnoreCase);
+        if (nameIdx < 0)
+            return null;
+
+        var tagEnd = html.IndexOf('>', nameIdx);
+        if (tagEnd <= nameIdx)
+            return null;
+
+        var tag = html[nameIdx..tagEnd];
+        const string valueMarker = "value=\"";
+        var valueIdx = tag.IndexOf(valueMarker, StringComparison.OrdinalIgnoreCase);
+        if (valueIdx < 0)
+            return null;
+
+        var start = valueIdx + valueMarker.Length;
+        var end = tag.IndexOf('"', start);
+        return end > start ? tag[start..end] : null;
     }
 }

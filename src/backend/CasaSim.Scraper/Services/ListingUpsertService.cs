@@ -48,7 +48,7 @@ public sealed class ListingUpsertService
 
         // ── Resolve agency ────────────────────────────────────
         var agency = await _db.Agencies
-            .AsTracking()
+            .AsNoTracking()
             .FirstOrDefaultAsync(a => a.Slug == agencySlug, ct);
 
         if (agency is null)
@@ -61,7 +61,6 @@ public sealed class ListingUpsertService
         // ── Look up existing listing by (AgencyId, ExternalId) ──
         var existing = await _db.Listings
             .AsTracking()
-            .Include(l => l.Images)
             .FirstOrDefaultAsync(
                 l => l.AgencyId == agency.Id && l.ExternalId == property.ExternalId,
                 ct);
@@ -73,8 +72,11 @@ public sealed class ListingUpsertService
             existing.UpdatedAt = DateTimeOffset.UtcNow;
             existing.LastSeenAt = DateTimeOffset.UtcNow;
 
-            // Replace images: remove old, add fresh set (works with PostgreSQL cascade delete)
-            ReplaceImages(existing, property.Images);
+            // Replace images with set-based deletes instead of clearing a tracked
+            // collection.  Clearing a loaded collection in large batches caused
+            // Npgsql/EF to emit DELETE commands that sometimes affected 0 rows and
+            // tripped DbUpdateConcurrencyException on the live scraper.
+            await ReplaceImagesAsync(existing.Id, property.Images, ct);
 
             using var listingScope = LogContext.PushProperty("listingId", existing.Id);
             _logger.LogDebug("Updated listing {SourceId} ({Title})",
@@ -241,17 +243,31 @@ public sealed class ListingUpsertService
         return listing;
     }
 
-    private void ReplaceImages(Listing listing, List<string> imageUrls)
+    private async Task ReplaceImagesAsync(Guid listingId, List<string> imageUrls, CancellationToken ct)
     {
-        // Remove old images (EF cascade delete with PostgreSQL handles cleanup)
-        listing.Images.Clear();
+        // Remove old images without loading/tracking them. ExecuteDeleteAsync is
+        // available for the live relational provider; the fallback keeps unit tests
+        // using non-relational providers working.
+        if (_db.Database.IsRelational())
+        {
+            await _db.ListingImages
+                .Where(i => i.ListingId == listingId)
+                .ExecuteDeleteAsync(ct);
+        }
+        else
+        {
+            var oldImages = await _db.ListingImages
+                .Where(i => i.ListingId == listingId)
+                .ToListAsync(ct);
+            _db.ListingImages.RemoveRange(oldImages);
+        }
 
         for (var i = 0; i < imageUrls.Count; i++)
         {
-            listing.Images.Add(new ListingImage
+            _db.ListingImages.Add(new ListingImage
             {
                 Id = Guid.NewGuid(),
-                ListingId = listing.Id,
+                ListingId = listingId,
                 Url = imageUrls[i],
                 SortOrder = i,
                 IsPrimary = i == 0,
