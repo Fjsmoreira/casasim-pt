@@ -44,7 +44,7 @@ public sealed class ListingsController : ControllerBase
             .Include(l => l.Agency)
             .Include(l => l.Location)
             .Include(l => l.Images.OrderBy(i => i.SortOrder))
-            .Include(l => l.Features.OrderBy(f => f.SortOrder))
+            .Include(l => l.Features)
             .Where(l => l.Id == id)
             .Select(l => new ListingDetailDto
             {
