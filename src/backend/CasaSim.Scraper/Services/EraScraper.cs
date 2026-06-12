@@ -85,25 +85,13 @@ internal sealed class EraScraper : IPropertyScraper, IAgencyScraper
                 return results;
             }
 
-            // Step 2: Search for listings
-            var searchResults = await SearchPropertiesAsync(token, ct);
+            // Step 2: Search for listings. The current ERA detail pages are
+            // React-rendered enough that the legacy HTML parser no longer sees
+            // the listing payload, but the search API already returns the fields
+            // needed for CasaSim cards (title, price, areas, gallery, URL, etc.).
+            results.AddRange(await SearchPropertyCardsAsync(token, ct));
 
-            _logger.LogInformation("ERA search found {Count} listing(s)", searchResults.Count);
-
-            // Step 3: Fetch detail pages
-            foreach (var (id, url) in searchResults)
-            {
-                try
-                {
-                    var property = await FetchAndParseDetailAsync(url, id, ct);
-                    if (property is not null)
-                        results.Add(property);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Failed to fetch/parse ERA listing {Id} at {Url}", id, url);
-                }
-            }
+            _logger.LogInformation("ERA search found {Count} listing(s)", results.Count);
         }
         catch (Exception ex)
         {
@@ -418,6 +406,47 @@ internal sealed class EraScraper : IPropertyScraper, IAgencyScraper
         return ParseSearchResponse(json);
     }
 
+    private async Task<List<Property>> SearchPropertyCardsAsync(string token, CancellationToken ct)
+    {
+        var url = $"{ApiBaseUrl}{SearchEndpoint}";
+
+        var request = new HttpRequestMessage(HttpMethod.Post, url)
+        {
+            Content = new StringContent(
+                $$"""
+                {
+                  "searchtext": "{{PombalSearchText}}",
+                  "page": 1,
+                  "recordsPerPage": {{RecordsPerPage}},
+                  "businessTypeIds": null,
+                  "propertyTypeIds": null,
+                  "propertySubTypeIds": null,
+                  "category": null,
+                  "agencyId": null,
+                  "order": null,
+                  "zoneIds": null,
+                  "vantagensERA": null,
+                  "projectIds": null,
+                  "minPrice": null,
+                  "maxPrice": null,
+                  "minArea": null,
+                  "maxArea": null
+                }
+                """,
+                System.Text.Encoding.UTF8,
+                "application/json"),
+        };
+
+        request.Headers.Add("RequestVerificationToken", token);
+        request.Headers.Add("X-Requested-With", "XMLHttpRequest");
+
+        var response = await _http.SendAsync(request, ct);
+        response.EnsureSuccessStatusCode();
+
+        var json = await response.Content.ReadAsStringAsync(ct);
+        return ParseSearchProperties(json);
+    }
+
     /// <summary>
     /// Parse the ERA Property/Search API response to extract (id, detailUrl) pairs.
     /// </summary>
@@ -481,6 +510,80 @@ internal sealed class EraScraper : IPropertyScraper, IAgencyScraper
         }
 
         return results;
+    }
+
+    internal static List<Property> ParseSearchProperties(string json)
+    {
+        var results = new List<Property>();
+        using var doc = JsonDocument.Parse(json);
+        if (!TryGetSearchItems(doc.RootElement, out var items))
+            return results;
+
+        foreach (var item in items)
+        {
+            var id = GetStringProp(item, "Id") ?? GetStringProp(item, "Reference");
+            if (string.IsNullOrWhiteSpace(id))
+                continue;
+
+            var url = GetStringProp(item, "DetailUrl") ?? GetStringProp(item, "Url") ?? $"{BaseUrl}/imovel/p-{id}";
+            if (!url.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                url = $"{BaseUrl}{url}";
+
+            var rentPrice = GetDecimalProp(item, "RentPrice");
+            var salePrice = GetDecimalProp(item, "SellPrice");
+            var subleasePrice = GetDecimalProp(item, "SubleasePrice");
+            var lat = GetDoubleProp(item, "Lat");
+            var lng = GetDoubleProp(item, "Lng");
+
+            results.Add(new Property
+            {
+                ExternalId = id,
+                SourceAgency = "ERA",
+                Title = GetStringProp(item, "Title") ?? $"ERA listing {id}",
+                Price = rentPrice ?? salePrice ?? subleasePrice ?? 0m,
+                Currency = "EUR",
+                Type = MapEraPropertyType(GetStringProp(item, "PropertyType"), GetStringProp(item, "PropertySubType")),
+                Transaction = rentPrice is not null ? TransactionType.Rent : TransactionType.Sale,
+                City = "Pombal",
+                District = "Leiria",
+                AreaM2 = GetDoubleProp(item, "ListingArea") ?? GetDoubleProp(item, "NetArea"),
+                LandAreaM2 = GetDoubleProp(item, "LandArea"),
+                Bedrooms = GetIntProp(item, "Rooms"),
+                Bathrooms = GetIntProp(item, "Wcs"),
+                ParkingSpots = GetIntProp(item, "Parking"),
+                EnergyClass = GetStringProp(item, "Ce"),
+                Images = GetGalleryUrls(item),
+                ListingUrl = url,
+                Status = GetBoolProp(item, "IsSold") == true ? PropertyStatus.Sold : PropertyStatus.Active,
+                Location = lat.HasValue && lng.HasValue ? new Point(lng.Value, lat.Value) { SRID = 4326 } : null,
+            });
+        }
+
+        return results;
+    }
+
+    private static bool TryGetSearchItems(JsonElement root, out JsonElement.ArrayEnumerator items)
+    {
+        if (root.ValueKind == JsonValueKind.Array)
+        {
+            items = root.EnumerateArray();
+            return true;
+        }
+
+        if (root.TryGetProperty("data", out var data) && data.ValueKind == JsonValueKind.Array)
+        {
+            items = data.EnumerateArray();
+            return true;
+        }
+
+        if (root.TryGetProperty("PropertyList", out var propertyList) && propertyList.ValueKind == JsonValueKind.Array)
+        {
+            items = propertyList.EnumerateArray();
+            return true;
+        }
+
+        items = default;
+        return false;
     }
 
     // ── Internal: Detail page fetching ──────────────────────────
@@ -574,6 +677,80 @@ internal sealed class EraScraper : IPropertyScraper, IAgencyScraper
             JsonValueKind.Number => val.TryGetInt64(out var n) ? n.ToString(System.Globalization.CultureInfo.InvariantCulture) : val.GetRawText(),
             _ => null,
         };
+    }
+
+    private static decimal? GetDecimalProp(JsonElement el, string property)
+    {
+        var text = GetStringProp(el, property);
+        if (string.IsNullOrWhiteSpace(text))
+            return null;
+
+        text = text.Replace(" ", string.Empty).Replace("€", string.Empty);
+        if (decimal.TryParse(text, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var invariant))
+            return invariant;
+        if (decimal.TryParse(text, System.Globalization.NumberStyles.Any, new System.Globalization.CultureInfo("pt-PT"), out var pt))
+            return pt;
+        return null;
+    }
+
+    private static double? GetDoubleProp(JsonElement el, string property)
+    {
+        var text = GetStringProp(el, property);
+        if (string.IsNullOrWhiteSpace(text))
+            return null;
+
+        text = text.Replace(" ", string.Empty);
+        if (double.TryParse(text, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var invariant))
+            return invariant;
+        if (double.TryParse(text, System.Globalization.NumberStyles.Any, new System.Globalization.CultureInfo("pt-PT"), out var pt))
+            return pt;
+        return null;
+    }
+
+    private static int? GetIntProp(JsonElement el, string property)
+    {
+        var value = GetDoubleProp(el, property);
+        return value.HasValue ? (int)Math.Round(value.Value) : null;
+    }
+
+    private static bool? GetBoolProp(JsonElement el, string property)
+    {
+        if (!el.TryGetProperty(property, out var val))
+            return null;
+
+        return val.ValueKind switch
+        {
+            JsonValueKind.True => true,
+            JsonValueKind.False => false,
+            JsonValueKind.String when bool.TryParse(val.GetString(), out var b) => b,
+            _ => null,
+        };
+    }
+
+    private static List<string> GetGalleryUrls(JsonElement item)
+    {
+        if (!item.TryGetProperty("Gallery", out var gallery) || gallery.ValueKind != JsonValueKind.Array)
+            return [];
+
+        var urls = new List<string>();
+        foreach (var image in gallery.EnumerateArray())
+        {
+            var url = GetStringProp(image, "Url");
+            if (!string.IsNullOrWhiteSpace(url))
+                urls.Add(url);
+        }
+
+        return urls;
+    }
+
+    private static PropertyType MapEraPropertyType(string? propertyType, string? propertySubType)
+    {
+        var text = $"{propertyType} {propertySubType}".ToLowerInvariant();
+        if (text.Contains("apartamento")) return PropertyType.Apartment;
+        if (text.Contains("moradia")) return PropertyType.House;
+        if (text.Contains("terreno") || text.Contains("lote")) return PropertyType.Land;
+        if (text.Contains("loja") || text.Contains("armaz") || text.Contains("escrit")) return PropertyType.Commercial;
+        return PropertyType.Other;
     }
 
     private static string? ExtractHiddenRequestVerificationToken(string html)
