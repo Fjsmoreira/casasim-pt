@@ -56,7 +56,7 @@ services:
       db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "pgrep -f CasaSim.Scraper.dll || exit 1"]
+      test: ["CMD-SHELL", "test -s /proc/1/cmdline"]
       interval: 30s
       timeout: 10s
       retries: 3
