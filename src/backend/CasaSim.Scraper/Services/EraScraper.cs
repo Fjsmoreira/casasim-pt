@@ -697,10 +697,13 @@ internal sealed class EraScraper : IPropertyScraper, IAgencyScraper
             return null;
 
         text = text.Replace(" ", string.Empty).Replace("€", string.Empty);
+        var ptText = text;
+        if (ptText.Contains('.') && !ptText.Contains(','))
+            ptText = ptText.Replace(".", string.Empty);
+        if (decimal.TryParse(ptText, System.Globalization.NumberStyles.Any, new System.Globalization.CultureInfo("pt-PT"), out var pt))
+            return pt;
         if (decimal.TryParse(text, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var invariant))
             return invariant;
-        if (decimal.TryParse(text, System.Globalization.NumberStyles.Any, new System.Globalization.CultureInfo("pt-PT"), out var pt))
-            return pt;
         return null;
     }
 
