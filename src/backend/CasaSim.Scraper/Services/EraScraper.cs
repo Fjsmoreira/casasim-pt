@@ -7,8 +7,10 @@ using NetTopologySuite.Geometries;
 namespace CasaSim.Scraper.Services;
 
 /// <summary>
-/// ERA Pombal scraper — discovers listings via the ERA Portugal REST API,
-/// then fetches detail pages and parses them with <see cref="EraListingParser"/>.
+/// ERA Pombal scraper — discovers listings via the ERA Portugal REST API
+/// using location-based filtering (locationId="10-15" for Pombal concelho),
+/// which returns all freguesias (Abiul, Redinha, Pelariga, Vermoil, etc.).
+/// Then fetches detail pages and parses them with <see cref="EraListingParser"/>.
 ///
 /// ERA's REST API requires ASP.NET anti-forgery tokens (__RequestVerificationToken),
 /// so each scrape cycle starts by acquiring a fresh token from the homepage before
@@ -25,8 +27,13 @@ internal sealed class EraScraper : IPropertyScraper, IAgencyScraper
     private const string SearchEndpoint = "/Property/Search";
     private const string HomePagePath = "/";
     private const string AgencySlugValue = "era-pombal";
-    private const string PombalSearchText = "Pombal";
-    private const int RecordsPerPage = 50;
+    // Location IDs follow ERA's format: {district}-{municipality}.
+    // "10-15" = Leiria district (10), Pombal municipality (15).
+    // Using locationId instead of searchtext ensures ALL freguesias
+    // in the Pombal concelho are included (Abiul, Redinha, Pelariga,
+    // Vermoil, Carnide, Louriçal, Meirinhas, Vila Cã, etc.).
+    private const string PombalLocationId = "10-15";
+    private const int RecordsPerPage = 15;
 
     // ── IPropertyScraper ────────────────────────────────────────
 
@@ -45,7 +52,7 @@ internal sealed class EraScraper : IPropertyScraper, IAgencyScraper
         SearchEndpoint = SearchEndpoint,
         DefaultSearchParams = new()
         {
-            ["searchtext"] = PombalSearchText,
+            ["locationId"] = PombalLocationId,
         },
     };
 
@@ -376,9 +383,10 @@ internal sealed class EraScraper : IPropertyScraper, IAgencyScraper
                 Content = new StringContent(
                     $$"""
                     {
-                      "searchtext": "{{PombalSearchText}}",
+                      "searchtext": null,
                       "page": {{page}},
                       "recordsPerPage": {{RecordsPerPage}},
+                      "locationId": ["{{PombalLocationId}}"],
                       "businessTypeIds": null,
                       "propertyTypeIds": null,
                       "propertySubTypeIds": null,
@@ -437,9 +445,10 @@ internal sealed class EraScraper : IPropertyScraper, IAgencyScraper
                 Content = new StringContent(
                     $$"""
                     {
-                      "searchtext": "{{PombalSearchText}}",
+                      "searchtext": null,
                       "page": 1,
                       "recordsPerPage": {{RecordsPerPage}},
+                      "locationId": ["{{PombalLocationId}}"],
                       "businessTypeIds": null,
                       "propertyTypeIds": null,
                       "propertySubTypeIds": null,
