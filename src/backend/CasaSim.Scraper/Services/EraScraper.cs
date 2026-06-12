@@ -671,6 +671,11 @@ internal sealed class EraScraper : IPropertyScraper, IAgencyScraper
         if (!el.TryGetProperty(property, out var val))
             return null;
 
+        return GetJsonElementAsString(val);
+    }
+
+    private static string? GetJsonElementAsString(JsonElement val)
+    {
         return val.ValueKind switch
         {
             JsonValueKind.String => val.GetString(),
@@ -681,7 +686,13 @@ internal sealed class EraScraper : IPropertyScraper, IAgencyScraper
 
     private static decimal? GetDecimalProp(JsonElement el, string property)
     {
-        var text = GetStringProp(el, property);
+        if (!el.TryGetProperty(property, out var val))
+            return null;
+
+        var text = val.ValueKind == JsonValueKind.Object && val.TryGetProperty("Value", out var objectValue)
+            ? GetJsonElementAsString(objectValue)
+            : GetJsonElementAsString(val);
+
         if (string.IsNullOrWhiteSpace(text))
             return null;
 
