@@ -410,37 +410,49 @@ internal sealed class EraScraper : IPropertyScraper, IAgencyScraper
     {
         var url = $"{ApiBaseUrl}{SearchEndpoint}";
 
-        var request = new HttpRequestMessage(HttpMethod.Post, url)
+        HttpRequestMessage BuildRequest(string requestToken)
         {
-            Content = new StringContent(
-                $$"""
-                {
-                  "searchtext": "{{PombalSearchText}}",
-                  "page": 1,
-                  "recordsPerPage": {{RecordsPerPage}},
-                  "businessTypeIds": null,
-                  "propertyTypeIds": null,
-                  "propertySubTypeIds": null,
-                  "category": null,
-                  "agencyId": null,
-                  "order": null,
-                  "zoneIds": null,
-                  "vantagensERA": null,
-                  "projectIds": null,
-                  "minPrice": null,
-                  "maxPrice": null,
-                  "minArea": null,
-                  "maxArea": null
-                }
-                """,
-                System.Text.Encoding.UTF8,
-                "application/json"),
-        };
+            var request = new HttpRequestMessage(HttpMethod.Post, url)
+            {
+                Content = new StringContent(
+                    $$"""
+                    {
+                      "searchtext": "{{PombalSearchText}}",
+                      "page": 1,
+                      "recordsPerPage": {{RecordsPerPage}},
+                      "businessTypeIds": null,
+                      "propertyTypeIds": null,
+                      "propertySubTypeIds": null,
+                      "category": null,
+                      "agencyId": null,
+                      "order": null,
+                      "zoneIds": null,
+                      "vantagensERA": null,
+                      "projectIds": null,
+                      "minPrice": null,
+                      "maxPrice": null,
+                      "minArea": null,
+                      "maxArea": null
+                    }
+                    """,
+                    System.Text.Encoding.UTF8,
+                    "application/json"),
+            };
 
-        request.Headers.Add("RequestVerificationToken", token);
-        request.Headers.Add("X-Requested-With", "XMLHttpRequest");
+            request.Headers.Add("RequestVerificationToken", requestToken);
+            request.Headers.Add("X-Requested-With", "XMLHttpRequest");
+            return request;
+        }
 
-        var response = await _http.SendAsync(request, ct);
+        var response = await _http.SendAsync(BuildRequest(token), ct);
+        if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        {
+            _logger.LogWarning("ERA search token was rejected; refetching token and retrying once");
+            response.Dispose();
+            var freshToken = await FetchTokenAsync(ct);
+            response = await _http.SendAsync(BuildRequest(freshToken), ct);
+        }
+
         response.EnsureSuccessStatusCode();
 
         var json = await response.Content.ReadAsStringAsync(ct);
