@@ -8,12 +8,15 @@ public sealed class ListingSearchRequest
     // ── Filters ──────────────────────────────────────────────
     public string? City { get; init; }
     public string? PropertyType { get; init; }
+    public string? Type { get; init; }
     public string? PriceType { get; init; }
+    public string? Transaction { get; init; }
     public string? Status { get; init; }
     public decimal? MinPrice { get; init; }
     public decimal? MaxPrice { get; init; }
     public int? MinBedrooms { get; init; }
     public decimal? MinAreaM2 { get; init; }
+    public string? Locality { get; init; }
     public string? AgencySlug { get; init; }
 
     // ── Sorting ──────────────────────────────────────────────
@@ -38,6 +41,7 @@ internal sealed record ValidatedSearchRequest
     public decimal? MaxPrice { get; init; }
     public int? MinBedrooms { get; init; }
     public decimal? MinAreaM2 { get; init; }
+    public string? Locality { get; init; }
     public string? AgencySlug { get; init; }
 
     public string SortBy { get; init; } = "UpdatedAt";

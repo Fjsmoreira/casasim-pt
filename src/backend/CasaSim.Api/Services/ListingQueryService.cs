@@ -117,13 +117,14 @@ public sealed class ListingQueryService : IListingQueryService
         return new ValidatedSearchRequest
         {
             City = string.IsNullOrWhiteSpace(request.City) ? null : request.City.Trim(),
-            PropertyType = string.IsNullOrWhiteSpace(request.PropertyType) ? null : request.PropertyType,
-            PriceType = string.IsNullOrWhiteSpace(request.PriceType) ? null : request.PriceType,
+            PropertyType = string.IsNullOrWhiteSpace(request.PropertyType ?? request.Type) ? null : (request.PropertyType ?? request.Type),
+            PriceType = string.IsNullOrWhiteSpace(request.PriceType ?? request.Transaction) ? null : (request.PriceType ?? request.Transaction),
             Status = string.IsNullOrWhiteSpace(request.Status) ? null : request.Status,
             MinPrice = request.MinPrice,
             MaxPrice = request.MaxPrice,
             MinBedrooms = request.MinBedrooms,
             MinAreaM2 = request.MinAreaM2,
+            Locality = string.IsNullOrWhiteSpace(request.Locality) ? null : request.Locality.Trim(),
             AgencySlug = string.IsNullOrWhiteSpace(request.AgencySlug) ? null : request.AgencySlug,
             SortBy = sortBy,
             SortDirection = sortDir,
@@ -160,6 +161,23 @@ public sealed class ListingQueryService : IListingQueryService
 
         if (v.MinAreaM2.HasValue)
             query = query.Where(l => l.AreaM2 >= v.MinAreaM2.Value);
+
+        if (v.Locality is not null)
+        {
+            var locality = v.Locality;
+
+            // Current production data has localidade/freguesia embedded in titles,
+            // e.g. "Moradia T2 à venda em Abiul, Pombal". Prefer normalized
+            // Location.Parish once populated; keep title matching as a fallback
+            // for today's scraped data.
+            query = query.Where(l =>
+                (l.Location != null && l.Location.Parish != null && EF.Functions.ILike(l.Location.Parish, locality)) ||
+                (EF.Functions.ILike(l.Title, $"% em {locality}, Pombal%") ||
+                 EF.Functions.ILike(l.Title, $"% no {locality}, Pombal%") ||
+                 EF.Functions.ILike(l.Title, $"% na {locality}, Pombal%") ||
+                 EF.Functions.ILike(l.Title, $"%| {locality} | Pombal%") ||
+                 EF.Functions.ILike(l.Title, $"%|| {locality}%")));
+        }
 
         if (v.AgencySlug is not null)
             query = query.Where(l => l.Agency != null && l.Agency.Slug == v.AgencySlug);

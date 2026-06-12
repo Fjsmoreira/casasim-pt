@@ -24,6 +24,23 @@ const BEDROOM_OPTIONS = [
   { value: 4, label: '4+' },
 ] as const
 
+const LOCALITIES = [
+  'Pombal',
+  'Abiul',
+  'Albergaria dos Doze',
+  'Almagreira',
+  'Carnide',
+  'Carriço',
+  'Louriçal',
+  'Meirinhas',
+  'Pelariga',
+  'Redinha',
+  'Santiago e São Simão de Litém e Albergaria dos Doze',
+  'São Simão de Litém',
+  'Vermoil',
+  'Vila Cã',
+] as const
+
 /* ─────────────── shared input class ─────────────── */
 
 const inputCls =
@@ -35,13 +52,13 @@ const inputCls =
 function FilterContent({ className }: { className?: string }) {
   const {
     priceMin, priceMax,
-    type, bedrooms, transaction,
-    setPriceMin, setPriceMax, setType, setBedrooms, setTransaction,
+    type, bedrooms, transaction, locality,
+    setPriceMin, setPriceMax, setType, setBedrooms, setTransaction, setLocality,
     clearFilters,
   } = useFilterStore()
 
   const anyActive = priceMin !== undefined || priceMax !== undefined ||
-    type !== undefined || bedrooms !== undefined || transaction !== undefined
+    type !== undefined || bedrooms !== undefined || transaction !== undefined || locality !== undefined
 
   const handleBedroomChange = useCallback(
     (e: ChangeEvent<HTMLSelectElement>) => {
@@ -121,6 +138,21 @@ function FilterContent({ className }: { className?: string }) {
             className={inputCls}
           />
         </div>
+      </fieldset>
+
+      {/* ── Locality / parish ── */}
+      <fieldset>
+        <legend className="text-sm font-medium text-foreground mb-2">Localidade</legend>
+        <select
+          value={locality ?? ''}
+          onChange={(e) => setLocality(e.target.value || undefined)}
+          className={inputCls + ' appearance-none'}
+        >
+          <option value="">Todas</option>
+          {LOCALITIES.map((loc) => (
+            <option key={loc} value={loc}>{loc}</option>
+          ))}
+        </select>
       </fieldset>
 
       {/* ── Bedrooms ── */}

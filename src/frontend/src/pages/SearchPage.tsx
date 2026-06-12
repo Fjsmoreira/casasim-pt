@@ -154,6 +154,7 @@ export default function SearchPage() {
     const urlMinPrice = searchParams.get('minPrice') ? Number(searchParams.get('minPrice')) : undefined
     const urlMaxPrice = searchParams.get('maxPrice') ? Number(searchParams.get('maxPrice')) : undefined
     const urlBedrooms = searchParams.get('bedrooms') ? Number(searchParams.get('bedrooms')) : undefined
+    const urlLocality = searchParams.get('locality') ?? undefined
     const urlPage = searchParams.get('page') ? Number(searchParams.get('page')) : 1
 
     // Only sync if the URL has any filter params (avoids overwriting defaults on first load)
@@ -163,6 +164,7 @@ export default function SearchPage() {
       if (urlMinPrice !== filterStore.priceMin) filterStore.setPriceMin(urlMinPrice)
       if (urlMaxPrice !== filterStore.priceMax) filterStore.setPriceMax(urlMaxPrice)
       if (urlBedrooms !== filterStore.bedrooms) filterStore.setBedrooms(urlBedrooms)
+      if (urlLocality !== filterStore.locality) filterStore.setLocality(urlLocality)
       setPage(urlPage)
     }
     // Run only once on mount — intentionally no deps so URL drives initial state

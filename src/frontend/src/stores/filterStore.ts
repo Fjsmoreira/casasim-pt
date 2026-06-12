@@ -7,6 +7,7 @@ export interface FilterState {
   type: string | undefined
   bedrooms: number | undefined
   transaction: string | undefined
+  locality: string | undefined
   mobileOpen: boolean
 
   setPriceMin: (val: number | undefined) => void
@@ -14,6 +15,7 @@ export interface FilterState {
   setType: (val: string | undefined) => void
   setBedrooms: (val: number | undefined) => void
   setTransaction: (val: string | undefined) => void
+  setLocality: (val: string | undefined) => void
   setMobileOpen: (val: boolean) => void
   clearFilters: () => void
   toParams: () => ListingsParams
@@ -25,6 +27,7 @@ const initialState = {
   type: undefined,
   bedrooms: undefined,
   transaction: undefined,
+  locality: undefined,
 }
 
 export const useFilterStore = create<FilterState>((set, get) => ({
@@ -36,18 +39,20 @@ export const useFilterStore = create<FilterState>((set, get) => ({
   setType: (val) => set({ type: val }),
   setBedrooms: (val) => set({ bedrooms: val }),
   setTransaction: (val) => set({ transaction: val }),
+  setLocality: (val) => set({ locality: val }),
   setMobileOpen: (val) => set({ mobileOpen: val }),
 
   clearFilters: () => set({ ...initialState }),
 
   toParams: () => {
-    const { priceMin, priceMax, type, bedrooms, transaction } = get()
+    const { priceMin, priceMax, type, bedrooms, transaction, locality } = get()
     const params: ListingsParams = {}
     if (priceMin !== undefined) params.minPrice = priceMin
     if (priceMax !== undefined) params.maxPrice = priceMax
     if (type) params.type = type
     if (bedrooms !== undefined) params.minBedrooms = bedrooms
     if (transaction) params.transaction = transaction
+    if (locality) params.locality = locality
     return params
   },
 }))

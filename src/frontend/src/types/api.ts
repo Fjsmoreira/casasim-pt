@@ -75,6 +75,7 @@ export interface ListingsParams {
   maxPrice?: number
   minBedrooms?: number
   city?: string
+  locality?: string
 }
 
 /** Response from GET /api/listings (paginated listing) */
