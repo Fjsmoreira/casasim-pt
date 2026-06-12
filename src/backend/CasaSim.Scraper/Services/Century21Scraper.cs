@@ -200,7 +200,13 @@ internal sealed class Century21Scraper : IPropertyScraper, IAgencyScraper
                 totalCount = totalEl.GetInt32();
 
             var parsed = _parser.ParseFromApiResponse(json);
-            allListings.AddRange(parsed);
+            // Deduplicate by ExternalId — Century21 can return the same
+            // listing on multiple pages (pagination overlap).
+            foreach (var listing in parsed)
+            {
+                if (!allListings.Any(l => l.ExternalId == listing.ExternalId))
+                    allListings.Add(listing);
+            }
 
             if (totalCount > 0 && allListings.Count >= totalCount)
                 break;
