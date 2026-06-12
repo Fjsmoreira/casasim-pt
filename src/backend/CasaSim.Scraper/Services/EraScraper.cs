@@ -364,46 +364,66 @@ internal sealed class EraScraper : IPropertyScraper, IAgencyScraper
     private async Task<List<(string Id, string Url)>> SearchPropertiesAsync(
         string token, CancellationToken ct)
     {
-        var url = $"{ApiBaseUrl}{SearchEndpoint}";
+        var allResults = new List<(string Id, string Url)>();
+        int page = 1;
 
-        var request = new HttpRequestMessage(HttpMethod.Post, url)
+        while (true)
         {
-            Content = new StringContent(
-                $$"""
-                {
-                  "searchtext": "{{PombalSearchText}}",
-                  "page": 1,
-                  "recordsPerPage": {{RecordsPerPage}},
-                  "businessTypeIds": null,
-                  "propertyTypeIds": null,
-                  "propertySubTypeIds": null,
-                  "category": null,
-                  "agencyId": null,
-                  "order": null,
-                  "zoneIds": null,
-                  "vantagensERA": null,
-                  "projectIds": null,
-                  "minPrice": null,
-                  "maxPrice": null,
-                  "minArea": null,
-                  "maxArea": null
-                }
-                """,
-                System.Text.Encoding.UTF8,
-                "application/json"),
-        };
+            var url = $"{ApiBaseUrl}{SearchEndpoint}";
 
-        request.Headers.Add("RequestVerificationToken", token);
-        request.Headers.Add("X-Requested-With", "XMLHttpRequest");
+            var request = new HttpRequestMessage(HttpMethod.Post, url)
+            {
+                Content = new StringContent(
+                    $$"""
+                    {
+                      "searchtext": "{{PombalSearchText}}",
+                      "page": {{page}},
+                      "recordsPerPage": {{RecordsPerPage}},
+                      "businessTypeIds": null,
+                      "propertyTypeIds": null,
+                      "propertySubTypeIds": null,
+                      "category": null,
+                      "agencyId": null,
+                      "order": null,
+                      "zoneIds": null,
+                      "vantagensERA": null,
+                      "projectIds": null,
+                      "minPrice": null,
+                      "maxPrice": null,
+                      "minArea": null,
+                      "maxArea": null
+                    }
+                    """,
+                    System.Text.Encoding.UTF8,
+                    "application/json"),
+            };
 
-        _logger.LogDebug("POST {Url} (token length: {Len})", url, token.Length);
+            request.Headers.Add("RequestVerificationToken", token);
+            request.Headers.Add("X-Requested-With", "XMLHttpRequest");
 
-        var response = await _http.SendAsync(request, ct);
-        response.EnsureSuccessStatusCode();
+            _logger.LogDebug("ERA page {Page}: POST {Url} (token length: {Len})", page, url, token.Length);
 
-        var json = await response.Content.ReadAsStringAsync(ct);
+            var response = await _http.SendAsync(request, ct);
+            response.EnsureSuccessStatusCode();
 
-        return ParseSearchResponse(json);
+            var json = await response.Content.ReadAsStringAsync(ct);
+            var pageResults = ParseSearchResponse(json);
+
+            _logger.LogDebug("ERA page {Page}: {Count} items", page, pageResults.Count);
+
+            allResults.AddRange(pageResults);
+
+            if (pageResults.Count < RecordsPerPage)
+                break;
+
+            page++;
+
+            if (page > 20)
+                break;
+        }
+
+        _logger.LogInformation("ERA search: {Total} items across {Pages} page(s)", allResults.Count, page);
+        return allResults;
     }
 
     private async Task<List<Property>> SearchPropertyCardsAsync(string token, CancellationToken ct)

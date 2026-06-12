@@ -172,21 +172,47 @@ internal sealed class Century21Scraper : IPropertyScraper, IAgencyScraper
 
     /// <summary>
     /// Fetch one ad_type (sell/rent) and return raw parsed listings + total count.
+    /// Century21 paginates at 20 items/page.  This method loops through all
+    /// pages to collect every listing in the concelho.
     /// </summary>
     private async Task<(IReadOnlyList<ParsedListing> Listings, int Total)> FetchRawAsync(
         string adType, CancellationToken ct)
     {
-        var url = $"{BaseUrl}{ApiPath}?addresses={PombalAddressId}&address_names={PombalAddressName}&ad_type={adType}";
+        const int pageSize = 20;
+        var allListings = new List<ParsedListing>();
+        int totalCount = 0;
+        int page = 1;
 
-        _logger.LogDebug("GET {Url}", url);
+        do
+        {
+            var url = $"{BaseUrl}{ApiPath}?addresses={PombalAddressId}&address_names={PombalAddressName}&ad_type={adType}&page={page}";
 
-        var response = await _http.GetAsync(url, ct);
-        response.EnsureSuccessStatusCode();
+            _logger.LogDebug("C21 {AdType} page {Page}: GET {Url}", adType, page, url);
 
-        var json = await response.Content.ReadAsStringAsync(ct);
-        var listings = _parser.ParseFromApiResponse(json);
+            var response = await _http.GetAsync(url, ct);
+            response.EnsureSuccessStatusCode();
 
-        return (listings, listings.Count);
+            var json = await response.Content.ReadAsStringAsync(ct);
+
+            // Parse response to extract total + page listings
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+            if (doc.RootElement.TryGetProperty("total", out var totalEl) && totalEl.ValueKind == System.Text.Json.JsonValueKind.Number)
+                totalCount = totalEl.GetInt32();
+
+            var parsed = _parser.ParseFromApiResponse(json);
+            allListings.AddRange(parsed);
+
+            if (totalCount > 0 && allListings.Count >= totalCount)
+                break;
+
+            page++;
+        }
+        while (allListings.Count > 0 && page <= 20); // safety limit
+
+        _logger.LogInformation("Century21 {AdType}: {Fetched}/{Total} properties across {Pages} page(s)",
+            adType, allListings.Count, totalCount, page);
+
+        return (allListings, totalCount > 0 ? totalCount : allListings.Count);
     }
 
     // ── Mapping ──────────────────────────────────────────────────
