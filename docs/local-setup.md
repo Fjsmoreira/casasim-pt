@@ -5,7 +5,7 @@ This page documents the commands that match the current repository layout. Run c
 ## Prerequisites
 
 - Docker with the Compose plugin (`docker compose ...`) for the container stack.
-- .NET 8 SDK for backend/API/scraper development.
+- .NET 10 SDK for backend/API/scraper development.
 - Node.js 20+ and npm for the frontend.
 - PostgreSQL/PostGIS if running the API or scraper directly on the host instead of fully inside Docker.
 

@@ -15,6 +15,7 @@ Start here:
 - `docs/networking.md` - Docker network model and why the API/database are not publicly exposed.
 - `docs/api-and-deployment.md` - API route summary, admin auth, required deployment environment, and deploy checks.
 - `docs/scrapers.md` - developer guide for adding agency scrapers, fixtures, tests, config, logging, and rate limits.
+- `docs/kanban.md` - repo-local app-building board for current implementation work.
 - `docs/scrapers/` - source-specific scraper notes.
 
 ## Repository layout
@@ -233,7 +234,7 @@ OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317 docker compose --profile 
 
 ## Stack
 
-- Backend: .NET 8, ASP.NET Core controllers, EF Core, Npgsql, Npgsql.NetTopologySuite, Serilog.
+- Backend: .NET 10, ASP.NET Core controllers, EF Core, Npgsql, Npgsql.NetTopologySuite, Serilog.
 - Frontend: React 19, TypeScript, Vite, Tailwind CSS, TanStack Query, Zustand, Leaflet, React Router.
 - Database: PostgreSQL 16 with PostGIS.
 - Infrastructure: Docker Compose, Nginx reverse proxy, Coolify deployment.

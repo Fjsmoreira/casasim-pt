@@ -15,6 +15,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "backend", "backend", "{5F57
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CasaSim.Api.Tests", "src\backend\CasaSim.Api.Tests\CasaSim.Api.Tests.csproj", "{406BF5AC-986A-4375-AC0D-A8AC2FF7CDA3}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CasaSim.Scraper.Tests", "src\backend\CasaSim.Scraper.Tests\CasaSim.Scraper.Tests.csproj", "{97F12A09-0AC6-470F-A24B-D2A07E358C2C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -37,9 +39,14 @@ Global
 		{406BF5AC-986A-4375-AC0D-A8AC2FF7CDA3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{406BF5AC-986A-4375-AC0D-A8AC2FF7CDA3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{406BF5AC-986A-4375-AC0D-A8AC2FF7CDA3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{97F12A09-0AC6-470F-A24B-D2A07E358C2C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{97F12A09-0AC6-470F-A24B-D2A07E358C2C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{97F12A09-0AC6-470F-A24B-D2A07E358C2C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{97F12A09-0AC6-470F-A24B-D2A07E358C2C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{5F576400-4DFF-41AB-904B-0E82E756E630} = {6D8567E9-375E-4059-8E80-FCFF1623B55E}
 		{406BF5AC-986A-4375-AC0D-A8AC2FF7CDA3} = {5F576400-4DFF-41AB-904B-0E82E756E630}
+		{97F12A09-0AC6-470F-A24B-D2A07E358C2C} = {5F576400-4DFF-41AB-904B-0E82E756E630}
 	EndGlobalSection
 EndGlobal

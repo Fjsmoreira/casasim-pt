@@ -17,6 +17,9 @@ describe('ListingCard', () => {
     // Area badge
     expect(screen.getByText('150m²')).toBeInTheDocument()
 
+    // Price per m²
+    expect(screen.getByText(/1\s?233\s*€\/m²/)).toBeInTheDocument()
+
     // Bedrooms badge (text is split across elements due to icon)
     expect(screen.getByText(/3\s*quartos/)).toBeInTheDocument()
 
@@ -33,11 +36,12 @@ describe('ListingCard', () => {
   it('renders rent badge with /mês suffix', () => {
     render(<ListingCard property={mockListingRent} />)
 
-    expect(screen.getByText(/\/mês/)).toBeInTheDocument()
+    expect(screen.getAllByText(/\/mês/).length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByText(/12\s*€\/m²\/mês/)).toBeInTheDocument()
     expect(screen.getByText('Arrendamento')).toBeInTheDocument()
   })
 
-  it('does not render area or bedrooms when not provided', () => {
+  it('does not render area, price per m2 or bedrooms when area and bedrooms are not provided', () => {
     const propWithoutExtras = {
       ...mockListing,
       areaM2: undefined,
@@ -46,6 +50,7 @@ describe('ListingCard', () => {
     render(<ListingCard property={propWithoutExtras} />)
 
     expect(screen.queryByText(/m²/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/€\/m²/)).not.toBeInTheDocument()
     expect(screen.queryByText(/quarto/)).not.toBeInTheDocument()
   })
 

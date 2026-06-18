@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Heart, Home, MapPin, Bed } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, formatPricePerM2 } from '@/lib/utils'
 import type { ListingSummary } from '@/types/api'
 
 const TYPE_LABELS: Record<string, string> = {
@@ -31,6 +31,7 @@ export default function ListingCard({ property, onFavoriteToggle }: ListingCardP
   const location = [parish, city].filter(Boolean).join(', ') || 'Pombal'
   const typeLabel = TYPE_LABELS[type] || type
   const transactionLabel = TRANSACTION_LABELS[transaction] || transaction
+  const pricePerM2 = formatPricePerM2(price, areaM2, transaction)
 
   return (
     <div className="group bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
@@ -75,6 +76,9 @@ export default function ListingCard({ property, onFavoriteToggle }: ListingCardP
             <span className="text-sm font-normal text-gray-500">/mês</span>
           )}
         </p>
+        {pricePerM2 && (
+          <p className="text-xs font-medium text-gray-500">{pricePerM2}</p>
+        )}
 
         {/* Title */}
         <h3 className="font-semibold text-gray-900 line-clamp-1 leading-tight">

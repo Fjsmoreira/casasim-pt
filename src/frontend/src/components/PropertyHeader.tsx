@@ -1,10 +1,11 @@
 import { MapPin, ExternalLink } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, formatPricePerM2 } from '@/lib/utils'
 
 interface PropertyHeaderProps {
   title: string
   price: number
   transaction: 'sale' | 'rent'
+  areaM2?: number
   parish?: string
   city?: string
   district?: string
@@ -16,6 +17,7 @@ export default function PropertyHeader({
   title,
   price,
   transaction,
+  areaM2,
   parish,
   city,
   district,
@@ -29,6 +31,7 @@ export default function PropertyHeader({
   })
 
   const locationParts = [parish, city, district].filter(Boolean) as string[]
+  const pricePerM2 = formatPricePerM2(price, areaM2, transaction)
 
   return (
     <div className="mb-8">
@@ -50,6 +53,11 @@ export default function PropertyHeader({
         >
           {transaction === 'sale' ? 'Venda' : 'Arrendamento'}
         </span>
+        {pricePerM2 && (
+          <span className="text-sm font-medium text-gray-500">
+            {pricePerM2}
+          </span>
+        )}
       </div>
 
       {/* Location */}

@@ -573,6 +573,7 @@ internal sealed class EraScraper : IPropertyScraper, IAgencyScraper
             var rentPrice = GetDecimalProp(item, "RentPrice");
             var salePrice = GetDecimalProp(item, "SellPrice");
             var subleasePrice = GetDecimalProp(item, "SubleasePrice");
+            var fallbackPrice = GetDecimalProp(item, "Price");
             var lat = GetDoubleProp(item, "Lat");
             var lng = GetDoubleProp(item, "Lng");
 
@@ -581,7 +582,7 @@ internal sealed class EraScraper : IPropertyScraper, IAgencyScraper
                 ExternalId = id,
                 SourceAgency = "ERA",
                 Title = GetStringProp(item, "Title") ?? $"ERA listing {id}",
-                Price = rentPrice ?? salePrice ?? subleasePrice ?? 0m,
+                Price = rentPrice ?? salePrice ?? subleasePrice ?? fallbackPrice ?? 0m,
                 Currency = "EUR",
                 Type = MapEraPropertyType(GetStringProp(item, "PropertyType"), GetStringProp(item, "PropertySubType")),
                 Transaction = rentPrice is not null ? TransactionType.Rent : TransactionType.Sale,

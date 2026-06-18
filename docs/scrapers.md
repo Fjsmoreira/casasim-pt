@@ -4,7 +4,7 @@ This guide explains how to add or maintain an agency scraper in CasaSim.pt. It i
 
 ## Current scraper architecture
 
-The scraper app is a .NET 8 background worker:
+The scraper app is a .NET 10 background worker:
 
 - Entry point: `src/backend/CasaSim.Scraper/Program.cs`
 - Runtime scheduler: `Services/ScraperOrchestrator.cs`

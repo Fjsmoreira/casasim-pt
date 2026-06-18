@@ -87,6 +87,7 @@ export default function PropertyDetailPage() {
         title={title}
         price={price}
         transaction={transaction}
+        areaM2={areaM2}
         parish={parish}
         city={city}
         district={district}

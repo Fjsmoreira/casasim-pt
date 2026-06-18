@@ -107,8 +107,8 @@ describe('FilterSidebar', () => {
     const user = userEvent.setup()
     render(<FilterSidebar />)
 
-    const selects = screen.getAllByRole('combobox')
-    await user.selectOptions(selects[0], '3')
+    const bedroomSelect = screen.getAllByLabelText('Quartos')[0]
+    await user.selectOptions(bedroomSelect, '3')
 
     expect(useFilterStore.getState().bedrooms).toBe(3)
   })
@@ -117,11 +117,11 @@ describe('FilterSidebar', () => {
     const user = userEvent.setup()
     render(<FilterSidebar />)
 
-    const selects = screen.getAllByRole('combobox')
-    await user.selectOptions(selects[0], '3')
+    const bedroomSelect = screen.getAllByLabelText('Quartos')[0]
+    await user.selectOptions(bedroomSelect, '3')
     expect(useFilterStore.getState().bedrooms).toBe(3)
 
-    await user.selectOptions(selects[0], '')
+    await user.selectOptions(bedroomSelect, '')
     expect(useFilterStore.getState().bedrooms).toBeUndefined()
   })
 

@@ -144,6 +144,7 @@ function FilterContent({ className }: { className?: string }) {
       <fieldset>
         <legend className="text-sm font-medium text-foreground mb-2">Localidade</legend>
         <select
+          aria-label="Localidade"
           value={locality ?? ''}
           onChange={(e) => setLocality(e.target.value || undefined)}
           className={inputCls + ' appearance-none'}
@@ -159,6 +160,7 @@ function FilterContent({ className }: { className?: string }) {
       <fieldset>
         <legend className="text-sm font-medium text-foreground mb-2">Quartos</legend>
         <select
+          aria-label="Quartos"
           value={bedrooms ?? ''}
           onChange={handleBedroomChange}
           className={inputCls + ' appearance-none'}

@@ -4,13 +4,20 @@
     "Url": "/imovel/apartamento-t3-pombal-pombal-404260053",
     "Title": "Apartamento T3, Pombal, Pombal",
     "Price": 258000,
-    "PropertyType": "Apartamento"
+    "PropertyType": "Apartamento",
+    "Rooms": 3,
+    "Wcs": 2,
+    "ListingArea": 101
   },
   {
     "Id": "404260052",
     "Url": "/imovel/moradia-t3-pombal-abiul-404260052",
     "Title": "Moradia T3, Abiul, Pombal",
     "Price": 0,
-    "PropertyType": "Moradia"
+    "PropertyType": "Moradia",
+    "Rooms": 3,
+    "Wcs": 2,
+    "ListingArea": 100,
+    "LandArea": 3131
   }
 ]

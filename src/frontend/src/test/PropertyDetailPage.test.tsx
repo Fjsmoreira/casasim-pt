@@ -48,6 +48,7 @@ describe('PropertyDetailPage', () => {
 
     // Key details should render
     expect(screen.getByText('Voltar para resultados')).toBeInTheDocument()
+    expect(screen.getByText(/1\s?233\s*€\/m²/)).toBeInTheDocument()
   })
 
   it('shows 404 page when property is not found', async () => {
