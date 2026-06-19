@@ -153,8 +153,11 @@ export default function SearchPage() {
     const urlTransaction = searchParams.get('transaction') ?? undefined
     const urlMinPrice = searchParams.get('minPrice') ? Number(searchParams.get('minPrice')) : undefined
     const urlMaxPrice = searchParams.get('maxPrice') ? Number(searchParams.get('maxPrice')) : undefined
-    const urlBedrooms = searchParams.get('bedrooms') ? Number(searchParams.get('bedrooms')) : undefined
+    const urlBedrooms = searchParams.get('minBedrooms') ? Number(searchParams.get('minBedrooms')) : undefined
+    const urlMinAreaM2 = searchParams.get('minAreaM2') ? Number(searchParams.get('minAreaM2')) : undefined
     const urlLocality = searchParams.get('locality') ?? undefined
+    const urlAgencySlug = searchParams.get('agencySlug') ?? undefined
+    const urlSortBy = searchParams.get('sortBy') ?? undefined
     const urlPage = searchParams.get('page') ? Number(searchParams.get('page')) : 1
 
     // Only sync if the URL has any filter params (avoids overwriting defaults on first load)
@@ -164,7 +167,10 @@ export default function SearchPage() {
       if (urlMinPrice !== filterStore.priceMin) filterStore.setPriceMin(urlMinPrice)
       if (urlMaxPrice !== filterStore.priceMax) filterStore.setPriceMax(urlMaxPrice)
       if (urlBedrooms !== filterStore.bedrooms) filterStore.setBedrooms(urlBedrooms)
+      if (urlMinAreaM2 !== filterStore.minAreaM2) filterStore.setMinAreaM2(urlMinAreaM2)
       if (urlLocality !== filterStore.locality) filterStore.setLocality(urlLocality)
+      if (urlAgencySlug !== filterStore.agencySlug) filterStore.setAgencySlug(urlAgencySlug)
+      if (urlSortBy !== filterStore.sortBy) filterStore.setSortBy(urlSortBy)
       setPage(urlPage)
     }
     // Run only once on mount — intentionally no deps so URL drives initial state
@@ -179,10 +185,11 @@ export default function SearchPage() {
       isFirstRender.current = false
       return
     }
+    const params = JSON.parse(paramsKey) as Record<string, string | number | boolean | null | undefined>
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev)
-        for (const [key, val] of Object.entries(filterParams)) {
+        for (const [key, val] of Object.entries(params)) {
           if (val !== undefined && val !== null) {
             next.set(key, String(val))
           } else {
@@ -256,11 +263,8 @@ export default function SearchPage() {
         />
       )}
 
-      {/* ── Empty (successful load, no results) ── */}
-      {!isInitialLoad && !isError && properties.length === 0 && <EmptyState />}
-
-      {/* ── Results ── */}
-      {!isInitialLoad && !isError && properties.length > 0 && (
+      {/* ── Results / empty ── */}
+      {!isInitialLoad && !isError && (
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Filter sidebar — desktop */}
           <FilterSidebar className="lg:col-span-1" />
@@ -275,40 +279,46 @@ export default function SearchPage() {
               </div>
             )}
 
-            {/* Listing grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
-              {properties.map((p) => (
-                <Link
-                  key={p.id}
-                  to={`/listings/${p.id}`}
-                  className="block transition-opacity"
-                >
-                  <ListingCard property={p} />
-                </Link>
-              ))}
-            </div>
+            {properties.length === 0 ? (
+              <EmptyState />
+            ) : (
+              <>
+                {/* Listing grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+                  {properties.map((p) => (
+                    <Link
+                      key={p.id}
+                      to={`/listings/${p.id}`}
+                      className="block transition-opacity"
+                    >
+                      <ListingCard property={p} />
+                    </Link>
+                  ))}
+                </div>
 
-            {/* Pagination */}
-            <Pagination
-              page={page}
-              totalPages={totalPages}
-              onPageChange={handlePageChange}
-            />
-
-            {/* Map */}
-            <div className="h-[400px] rounded-lg overflow-hidden border border-gray-200 lg:h-[500px] lg:sticky lg:top-8">
-              <MapContainer
-                center={[39.915, -8.628]}
-                zoom={13}
-                className="h-full w-full"
-                scrollWheelZoom={false}
-              >
-                <TileLayer
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                {/* Pagination */}
+                <Pagination
+                  page={page}
+                  totalPages={totalPages}
+                  onPageChange={handlePageChange}
                 />
-              </MapContainer>
-            </div>
+
+                {/* Map */}
+                <div className="h-[400px] rounded-lg overflow-hidden border border-gray-200 lg:h-[500px] lg:sticky lg:top-8">
+                  <MapContainer
+                    center={[39.915, -8.628]}
+                    zoom={13}
+                    className="h-full w-full"
+                    scrollWheelZoom={false}
+                  >
+                    <TileLayer
+                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    />
+                  </MapContainer>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

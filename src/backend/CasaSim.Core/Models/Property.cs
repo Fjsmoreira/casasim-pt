@@ -27,6 +27,7 @@ public sealed class Property
     public string? EnergyClass { get; set; }
     public List<string> Images { get; set; } = [];
     public string? ListingUrl { get; set; }
+    public DateTime? PublishedAt { get; set; }
     public DateTime DiscoveredAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public PropertyStatus Status { get; set; } = PropertyStatus.Active;

@@ -50,6 +50,8 @@ public sealed class ListingDetailDto
 
     // --- Timestamps ---
     public DateTimeOffset? PublishedAt { get; init; }
+    public DateTimeOffset FirstSeenAt { get; init; }
+    public DateTimeOffset LastSeenAt { get; init; }
     public DateTimeOffset CreatedAt { get; init; }
     public DateTimeOffset UpdatedAt { get; init; }
 }

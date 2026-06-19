@@ -278,6 +278,8 @@ public sealed class RemaxListingParser
 
         // --- Listing URL ---
         prop.ListingUrl = sourceUrl;
+        prop.PublishedAt = GetDateTime(listing, "publishDate")
+            ?? GetDateTime(listing, "contractDate");
 
         return prop;
     }
@@ -385,6 +387,22 @@ public sealed class RemaxListingParser
                     out var d))
                 return d;
         }
+        return null;
+    }
+
+    private static DateTime? GetDateTime(JsonElement el, string property)
+    {
+        if (el.TryGetProperty(property, out var val) &&
+            val.ValueKind == JsonValueKind.String &&
+            DateTime.TryParse(
+                val.GetString(),
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal,
+                out var dt))
+        {
+            return dt;
+        }
+
         return null;
     }
 

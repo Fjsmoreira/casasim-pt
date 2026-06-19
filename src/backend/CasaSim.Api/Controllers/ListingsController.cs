@@ -90,6 +90,8 @@ public sealed class ListingsController : ControllerBase
                 AgencyEmail = l.Agency != null ? l.Agency.ContactEmail : null,
                 AgencyWebsiteUrl = l.Agency != null ? l.Agency.WebsiteUrl : null,
                 PublishedAt = l.PublishedAt,
+                FirstSeenAt = l.FirstSeenAt,
+                LastSeenAt = l.LastSeenAt,
                 CreatedAt = l.CreatedAt,
                 UpdatedAt = l.UpdatedAt,
             })

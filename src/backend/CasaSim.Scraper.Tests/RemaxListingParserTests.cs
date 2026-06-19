@@ -44,6 +44,7 @@ public sealed class RemaxListingParserTests
 
         // Year built
         Assert.Equal(1957, prop.YearBuilt);
+        Assert.Equal(new DateTime(2017, 7, 21, 0, 0, 0, DateTimeKind.Utc), prop.PublishedAt);
 
         // Energy class: energyEfficiencyLevelID = 11 => "NC"
         Assert.Equal("NC", prop.EnergyClass);

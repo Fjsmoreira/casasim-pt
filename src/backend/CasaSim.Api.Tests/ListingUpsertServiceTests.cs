@@ -64,6 +64,7 @@ public sealed class ListingUpsertServiceTests
             EnergyClass = "C",
             Images = ["https://i.maxwork.pt/ds-l/img1.jpg", "https://i.maxwork.pt/ds-l/img2.jpg"],
             ListingUrl = "https://www.remax.pt/comprar/moradia/pombal/122591135-5",
+            PublishedAt = new DateTime(2026, 6, 8, 17, 15, 34, DateTimeKind.Utc),
             Status = PropertyStatus.Active,
             Location = new Point(-8.6283, 39.9167) { SRID = 4326 },
         };
@@ -105,6 +106,7 @@ public sealed class ListingUpsertServiceTests
         Assert.Equal(ListingPriceType.Sale, listing.PriceType);
         Assert.Equal(ListingStatus.Active, listing.Status);
         Assert.Equal("C", listing.EnergyClass);
+        Assert.Equal(new DateTimeOffset(2026, 6, 8, 17, 15, 34, TimeSpan.Zero), listing.PublishedAt);
 
         // Timestamps — compare within 1 second tolerance (in-memory DB precision)
         Assert.Equal(listing.FirstSeenAt, listing.LastSeenAt, TimeSpan.FromMilliseconds(100));

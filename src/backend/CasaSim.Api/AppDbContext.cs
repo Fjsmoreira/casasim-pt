@@ -12,6 +12,8 @@ public sealed class AppDbContext : DbContext
     public DbSet<ListingFeature> ListingFeatures => Set<ListingFeature>();
     public DbSet<Location> Locations => Set<Location>();
     public DbSet<ScrapeLog> ScrapeLogs => Set<ScrapeLog>();
+    public DbSet<ScraperSource> ScraperSources => Set<ScraperSource>();
+    public DbSet<ScrapeListingChange> ScrapeListingChanges => Set<ScrapeListingChange>();
 
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
@@ -25,6 +27,8 @@ public sealed class AppDbContext : DbContext
         ConfigureListingFeature(modelBuilder.Entity<ListingFeature>());
         ConfigureLocation(modelBuilder.Entity<Location>());
         ConfigureScrapeLog(modelBuilder.Entity<ScrapeLog>());
+        ConfigureScraperSource(modelBuilder.Entity<ScraperSource>());
+        ConfigureScrapeListingChange(modelBuilder.Entity<ScrapeListingChange>());
     }
 
     private static void ConfigureAgency(EntityTypeBuilder<Agency> entity)
@@ -274,5 +278,124 @@ public sealed class AppDbContext : DbContext
 
         entity.HasIndex(e => e.Status);
         entity.HasIndex(e => e.StartedAt);
+    }
+
+    private static void ConfigureScraperSource(EntityTypeBuilder<ScraperSource> entity)
+    {
+        entity.ToTable("scraper_source");
+        entity.HasKey(e => e.Id);
+
+        entity.Property(e => e.Name)
+              .HasMaxLength(255)
+              .IsRequired();
+
+        entity.Property(e => e.ScraperKey)
+              .HasMaxLength(100)
+              .IsRequired();
+
+        entity.Property(e => e.AgencySlug)
+              .HasMaxLength(255)
+              .IsRequired();
+
+        entity.Property(e => e.SourceUrl)
+              .HasMaxLength(2048);
+
+        entity.Property(e => e.TargetDescription)
+              .HasMaxLength(1000);
+
+        entity.HasOne(e => e.Agency)
+              .WithMany()
+              .HasForeignKey(e => e.AgencyId)
+              .OnDelete(DeleteBehavior.SetNull);
+
+        entity.HasIndex(e => e.ScraperKey).IsUnique();
+        entity.HasIndex(e => e.Enabled);
+
+        var now = new DateTimeOffset(2026, 6, 11, 0, 0, 0, TimeSpan.Zero);
+        entity.HasData(
+            new ScraperSource
+            {
+                Id = Guid.Parse("b1000000-0000-0000-0000-000000000001"),
+                AgencyId = Guid.Parse("a1000000-0000-0000-0000-000000000001"),
+                Name = "Remax Pombal",
+                ScraperKey = "Remax",
+                AgencySlug = "remax-pombal",
+                SourceUrl = "https://www.remax.pt",
+                TargetDescription = "Remax listings for Pombal",
+                Enabled = true,
+                Interval = TimeSpan.FromMinutes(1),
+                CreatedAt = now,
+                UpdatedAt = now,
+            },
+            new ScraperSource
+            {
+                Id = Guid.Parse("b1000000-0000-0000-0000-000000000002"),
+                AgencyId = Guid.Parse("a1000000-0000-0000-0000-000000000002"),
+                Name = "Century21 Pombal",
+                ScraperKey = "Century21",
+                AgencySlug = "century21-pombal",
+                SourceUrl = "https://www.century21.pt",
+                TargetDescription = "Century21 sale and rent listings for Pombal",
+                Enabled = true,
+                Interval = TimeSpan.FromMinutes(1),
+                CreatedAt = now,
+                UpdatedAt = now,
+            },
+            new ScraperSource
+            {
+                Id = Guid.Parse("b1000000-0000-0000-0000-000000000003"),
+                AgencyId = Guid.Parse("a1000000-0000-0000-0000-000000000003"),
+                Name = "ERA Pombal",
+                ScraperKey = "ERA",
+                AgencySlug = "era-pombal",
+                SourceUrl = "https://www.era.pt/imoveis/agencia/pombal",
+                TargetDescription = "ERA agency listings for Pombal",
+                Enabled = true,
+                Interval = TimeSpan.FromMinutes(1),
+                CreatedAt = now,
+                UpdatedAt = now,
+            }
+        );
+    }
+
+    private static void ConfigureScrapeListingChange(EntityTypeBuilder<ScrapeListingChange> entity)
+    {
+        entity.ToTable("scrape_listing_change");
+        entity.HasKey(e => e.Id);
+
+        entity.Property(e => e.Action)
+              .HasConversion<string>()
+              .HasMaxLength(50);
+
+        entity.Property(e => e.AgencySlug)
+              .HasMaxLength(255)
+              .IsRequired();
+
+        entity.Property(e => e.ExternalId)
+              .HasMaxLength(255)
+              .IsRequired();
+
+        entity.Property(e => e.Title)
+              .HasMaxLength(500);
+
+        entity.Property(e => e.SourceUrl)
+              .HasMaxLength(2048);
+
+        entity.Property(e => e.ChangeSummaryJson)
+              .HasColumnType("jsonb");
+
+        entity.HasOne(e => e.ScrapeLog)
+              .WithMany(e => e.ListingChanges)
+              .HasForeignKey(e => e.ScrapeLogId)
+              .OnDelete(DeleteBehavior.Cascade);
+
+        entity.HasOne(e => e.Listing)
+              .WithMany()
+              .HasForeignKey(e => e.ListingId)
+              .OnDelete(DeleteBehavior.SetNull);
+
+        entity.HasIndex(e => e.ScrapeLogId);
+        entity.HasIndex(e => e.Action);
+        entity.HasIndex(e => e.CreatedAt);
     }
 }

@@ -694,6 +694,7 @@ internal sealed class EraScraper : IPropertyScraper, IAgencyScraper
             EnergyClass = listing.EnergyClass,
             Images = listing.Images,
             ListingUrl = listing.ListingUrl,
+            PublishedAt = listing.PublishedAt,
             DiscoveredAt = listing.DiscoveredAt,
             Status = listing.Status,
         };

@@ -85,6 +85,9 @@ public sealed class ParsedListing
     /// <summary>Direct URL to the listing on the agency's site.</summary>
     public string? ListingUrl { get; init; }
 
+    /// <summary>Timestamp when the agency says the listing entered the market.</summary>
+    public DateTime? PublishedAt { get; init; }
+
     /// <summary>Timestamp when this listing was first discovered in this scrape cycle.</summary>
     public DateTime DiscoveredAt { get; init; } = DateTime.UtcNow;
 

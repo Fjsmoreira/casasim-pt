@@ -24,6 +24,18 @@ const BEDROOM_OPTIONS = [
   { value: 4, label: '4+' },
 ] as const
 
+const AGENCIES = [
+  { value: 'remax-pombal', label: 'RE/MAX' },
+  { value: 'century21-pombal', label: 'Century 21' },
+  { value: 'era-pombal', label: 'ERA' },
+] as const
+
+const SORT_OPTIONS = [
+  { value: 'PublishedAt', label: 'Mais recentes' },
+  { value: 'Price', label: 'Preço' },
+  { value: 'AreaM2', label: 'Área' },
+] as const
+
 const LOCALITIES = [
   'Pombal',
   'Abiul',
@@ -52,13 +64,14 @@ const inputCls =
 function FilterContent({ className }: { className?: string }) {
   const {
     priceMin, priceMax,
-    type, bedrooms, transaction, locality,
-    setPriceMin, setPriceMax, setType, setBedrooms, setTransaction, setLocality,
+    type, bedrooms, minAreaM2, transaction, locality, agencySlug, sortBy,
+    setPriceMin, setPriceMax, setType, setBedrooms, setMinAreaM2, setTransaction, setLocality, setAgencySlug, setSortBy,
     clearFilters,
   } = useFilterStore()
 
   const anyActive = priceMin !== undefined || priceMax !== undefined ||
-    type !== undefined || bedrooms !== undefined || transaction !== undefined || locality !== undefined
+    type !== undefined || bedrooms !== undefined || minAreaM2 !== undefined ||
+    transaction !== undefined || locality !== undefined || agencySlug !== undefined || sortBy !== undefined
 
   const handleBedroomChange = useCallback(
     (e: ChangeEvent<HTMLSelectElement>) => {
@@ -70,6 +83,22 @@ function FilterContent({ className }: { className?: string }) {
 
   return (
     <div className={cn('space-y-5', className)}>
+      {/* ── Sort ── */}
+      <fieldset>
+        <legend className="text-sm font-medium text-foreground mb-2">Ordenar</legend>
+        <select
+          aria-label="Ordenar"
+          value={sortBy ?? ''}
+          onChange={(e) => setSortBy(e.target.value || undefined)}
+          className={inputCls + ' appearance-none'}
+        >
+          <option value="">Atualizados recentemente</option>
+          {SORT_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>{option.label}</option>
+          ))}
+        </select>
+      </fieldset>
+
       {/* ── Transaction toggle ── */}
       <fieldset>
         <legend className="text-sm font-medium text-foreground mb-2">Tipo de negócio</legend>
@@ -156,6 +185,22 @@ function FilterContent({ className }: { className?: string }) {
         </select>
       </fieldset>
 
+      {/* ── Agency ── */}
+      <fieldset>
+        <legend className="text-sm font-medium text-foreground mb-2">Agência</legend>
+        <select
+          aria-label="Agência"
+          value={agencySlug ?? ''}
+          onChange={(e) => setAgencySlug(e.target.value || undefined)}
+          className={inputCls + ' appearance-none'}
+        >
+          <option value="">Todas</option>
+          {AGENCIES.map((agency) => (
+            <option key={agency.value} value={agency.value}>{agency.label}</option>
+          ))}
+        </select>
+      </fieldset>
+
       {/* ── Bedrooms ── */}
       <fieldset>
         <legend className="text-sm font-medium text-foreground mb-2">Quartos</legend>
@@ -170,6 +215,20 @@ function FilterContent({ className }: { className?: string }) {
             <option key={b.value} value={b.value}>{b.label}</option>
           ))}
         </select>
+      </fieldset>
+
+      {/* ── Area ── */}
+      <fieldset>
+        <legend className="text-sm font-medium text-foreground mb-2">Área mínima (m²)</legend>
+        <input
+          type="number"
+          min={0}
+          step={10}
+          placeholder="Ex. 100"
+          value={minAreaM2 ?? ''}
+          onChange={(e) => setMinAreaM2(e.target.value ? Number(e.target.value) : undefined)}
+          className={inputCls}
+        />
       </fieldset>
 
       {/* ── Clear filters ── */}

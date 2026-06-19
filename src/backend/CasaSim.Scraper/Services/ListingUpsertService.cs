@@ -3,6 +3,7 @@ using CasaSim.Core.Data.Entities;
 using CasaSim.Core.Models;
 using CasaSim.Scraper.Diagnostics;
 using System.Diagnostics;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Serilog.Context;
@@ -41,6 +42,7 @@ public sealed class ListingUpsertService
     public async Task<ListingUpsertResult> UpsertAsync(
         Property property,
         string agencySlug,
+        Guid? scrapeLogId = null,
         CancellationToken ct = default)
     {
         using var agencySlugScope = LogContext.PushProperty("agencySlug", agencySlug);
@@ -67,6 +69,8 @@ public sealed class ListingUpsertService
 
         if (existing is not null)
         {
+            var changes = BuildChangeSummary(existing, property);
+
             // ── Update ────────────────────────────────────────
             MapPropertyToListing(property, existing, agency.Id);
             existing.UpdatedAt = DateTimeOffset.UtcNow;
@@ -81,6 +85,16 @@ public sealed class ListingUpsertService
             using var listingScope = LogContext.PushProperty("listingId", existing.Id);
             _logger.LogDebug("Updated listing {SourceId} ({Title})",
                 property.ExternalId, property.Title);
+
+            AddListingChange(
+                scrapeLogId,
+                ScrapeListingChangeAction.Updated,
+                agencySlug,
+                existing.Id,
+                property.ExternalId,
+                property.Title,
+                property.ListingUrl,
+                changes);
 
             return new ListingUpsertResult(ListingUpsertAction.Updated, existing.Id);
         }
@@ -116,6 +130,16 @@ public sealed class ListingUpsertService
             _logger.LogDebug("Created listing {SourceId} ({Title})",
                 property.ExternalId, property.Title);
 
+            AddListingChange(
+                scrapeLogId,
+                ScrapeListingChangeAction.Created,
+                agencySlug,
+                listing.Id,
+                property.ExternalId,
+                property.Title,
+                property.ListingUrl,
+                null);
+
             return new ListingUpsertResult(ListingUpsertAction.Created, listing.Id);
         }
     }
@@ -127,6 +151,7 @@ public sealed class ListingUpsertService
     public async Task<BatchUpsertResult> UpsertBatchAsync(
         IReadOnlyList<Property> properties,
         string agencySlug,
+        Guid? scrapeLogId = null,
         CancellationToken ct = default)
     {
         using var agencySlugScope = LogContext.PushProperty("agencySlug", agencySlug);
@@ -143,7 +168,7 @@ public sealed class ListingUpsertService
 
         foreach (var property in properties)
         {
-            var result = await UpsertAsync(property, agencySlug, ct);
+            var result = await UpsertAsync(property, agencySlug, scrapeLogId, ct);
             switch (result.Action)
             {
                 case ListingUpsertAction.Created:
@@ -184,7 +209,7 @@ public sealed class ListingUpsertService
                 skipped = 0;
                 foreach (var property in properties)
                 {
-                    var result = await UpsertAsync(property, agencySlug, ct);
+                    var result = await UpsertAsync(property, agencySlug, scrapeLogId, ct);
                     switch (result.Action)
                     {
                         case ListingUpsertAction.Created: created++; break;
@@ -204,6 +229,55 @@ public sealed class ListingUpsertService
         activity?.SetTag("result.skipped", skipped);
 
         return new BatchUpsertResult(created, updated, skipped);
+    }
+
+    public async Task<int> MarkMissingListingsRemovedAsync(
+        string agencySlug,
+        IReadOnlySet<string> seenExternalIds,
+        Guid? scrapeLogId = null,
+        CancellationToken ct = default)
+    {
+        var agency = await _db.Agencies
+            .AsNoTracking()
+            .FirstOrDefaultAsync(a => a.Slug == agencySlug, ct);
+
+        if (agency is null)
+            return 0;
+
+        var missing = await _db.Listings
+            .AsTracking()
+            .Where(l => l.AgencyId == agency.Id)
+            .Where(l => l.Status != ListingStatus.Removed && l.Status != ListingStatus.Archived)
+            .ToListAsync(ct);
+
+        missing = missing
+            .Where(l => !seenExternalIds.Contains(l.ExternalId))
+            .ToList();
+
+        var now = DateTimeOffset.UtcNow;
+        foreach (var listing in missing)
+        {
+            var previousStatus = listing.Status;
+            listing.Status = ListingStatus.Removed;
+            listing.RemovedAt = now;
+            listing.UpdatedAt = now;
+
+            AddListingChange(
+                scrapeLogId,
+                ScrapeListingChangeAction.Removed,
+                agencySlug,
+                listing.Id,
+                listing.ExternalId,
+                listing.Title,
+                listing.SourceUrl,
+                new Dictionary<string, FieldChange?>
+                {
+                    ["status"] = new(previousStatus.ToString(), ListingStatus.Removed.ToString()),
+                    ["removedAt"] = new(null, now.ToString("O")),
+                });
+        }
+
+        return missing.Count;
     }
 
     // ── Mapping helpers ──────────────────────────────────────
@@ -233,6 +307,7 @@ public sealed class ListingUpsertService
         listing.ParkingSpaces = property.ParkingSpots;
         listing.YearBuilt = property.YearBuilt;
         listing.EnergyClass = property.EnergyClass;
+        listing.PublishedAt = ToDateTimeOffset(property.PublishedAt) ?? listing.PublishedAt;
 
         if (property.Location is not null)
         {
@@ -241,6 +316,73 @@ public sealed class ListingUpsertService
         }
 
         return listing;
+    }
+
+    private void AddListingChange(
+        Guid? scrapeLogId,
+        ScrapeListingChangeAction action,
+        string agencySlug,
+        Guid? listingId,
+        string externalId,
+        string? title,
+        string? sourceUrl,
+        IReadOnlyDictionary<string, FieldChange?>? changes)
+    {
+        if (scrapeLogId is null)
+            return;
+
+        _db.ScrapeListingChanges.Add(new ScrapeListingChange
+        {
+            Id = Guid.NewGuid(),
+            ScrapeLogId = scrapeLogId.Value,
+            ListingId = listingId,
+            Action = action,
+            AgencySlug = agencySlug,
+            ExternalId = externalId,
+            Title = title,
+            SourceUrl = sourceUrl,
+            ChangeSummaryJson = changes is { Count: > 0 }
+                ? JsonSerializer.Serialize(changes)
+                : null,
+            CreatedAt = DateTimeOffset.UtcNow,
+        });
+    }
+
+    private static IReadOnlyDictionary<string, FieldChange?> BuildChangeSummary(Listing existing, Property property)
+    {
+        var changes = new Dictionary<string, FieldChange?>();
+
+        AddIfChanged(changes, "title", existing.Title, property.Title);
+        AddIfChanged(changes, "description", existing.Description, property.Description);
+        AddIfChanged(changes, "sourceUrl", existing.SourceUrl, property.ListingUrl ?? string.Empty);
+        AddIfChanged(changes, "city", existing.City, property.City);
+        AddIfChanged(changes, "propertyType", existing.PropertyType.ToString(), MapPropertyType(property.Type).ToString());
+        AddIfChanged(changes, "priceType", existing.PriceType.ToString(), MapPriceType(property.Transaction).ToString());
+        AddIfChanged(changes, "status", existing.Status.ToString(), MapStatus(property.Status).ToString());
+        AddIfChanged(changes, "price", existing.Price, property.Price);
+        AddIfChanged(changes, "areaM2", existing.AreaM2, property.AreaM2 is not null ? (decimal?)property.AreaM2 : null);
+        AddIfChanged(changes, "landAreaM2", existing.LandAreaM2, property.LandAreaM2 is not null ? (decimal?)property.LandAreaM2 : null);
+        AddIfChanged(changes, "bedrooms", existing.Bedrooms, property.Bedrooms);
+        AddIfChanged(changes, "bathrooms", existing.Bathrooms, property.Bathrooms);
+        AddIfChanged(changes, "parkingSpaces", existing.ParkingSpaces, property.ParkingSpots);
+        AddIfChanged(changes, "yearBuilt", existing.YearBuilt, property.YearBuilt);
+        AddIfChanged(changes, "energyClass", existing.EnergyClass, property.EnergyClass);
+
+        return changes;
+    }
+
+    private static void AddIfChanged<T>(
+        IDictionary<string, FieldChange?> changes,
+        string field,
+        T? before,
+        T? after)
+    {
+        if (EqualityComparer<T?>.Default.Equals(before, after))
+            return;
+
+        changes[field] = new FieldChange(
+            before?.ToString(),
+            after?.ToString());
     }
 
     private async Task ReplaceImagesAsync(Guid listingId, List<string> imageUrls, CancellationToken ct)
@@ -277,6 +419,21 @@ public sealed class ListingUpsertService
                 LastSeenAt = DateTimeOffset.UtcNow,
             });
         }
+    }
+
+    private static DateTimeOffset? ToDateTimeOffset(DateTime? value)
+    {
+        if (value is null)
+            return null;
+
+        var utc = value.Value.Kind switch
+        {
+            DateTimeKind.Utc => value.Value,
+            DateTimeKind.Local => value.Value.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(value.Value, DateTimeKind.Utc),
+        };
+
+        return new DateTimeOffset(utc);
     }
 
     private static ListingPropertyType MapPropertyType(PropertyType type) => type switch
@@ -319,6 +476,8 @@ public sealed class ListingUpsertService
 }
 
 public readonly record struct ListingUpsertResult(ListingUpsertAction Action, Guid ListingId);
+
+public sealed record FieldChange(string? Before, string? After);
 
 public enum ListingUpsertAction
 {

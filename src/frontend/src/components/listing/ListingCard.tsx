@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Heart, Home, MapPin, Bed } from 'lucide-react'
+import { Heart, Home, MapPin, Bed, CalendarDays } from 'lucide-react'
 import { cn, formatPricePerM2 } from '@/lib/utils'
 import type { ListingSummary } from '@/types/api'
 
@@ -16,6 +16,21 @@ const TRANSACTION_LABELS: Record<string, string> = {
   rent: 'Arrendamento',
 }
 
+function normalizeKey(value?: string) {
+  return value ? value.charAt(0).toLowerCase() + value.slice(1) : undefined
+}
+
+function formatListingDate(value?: string) {
+  if (!value) return null
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return null
+  return new Intl.DateTimeFormat('pt-PT', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  }).format(date)
+}
+
 export interface ListingCardProps {
   property: ListingSummary
   onFavoriteToggle?: (id: string) => void
@@ -24,14 +39,17 @@ export interface ListingCardProps {
 export default function ListingCard({ property, onFavoriteToggle }: ListingCardProps) {
   const [isFavorited, setIsFavorited] = useState(false)
 
-  const { id, title, price, type, transaction, bedrooms, areaM2, city, parish, primaryImage, agency } =
+  const { id, title, price, bedrooms, areaM2, city, parish, primaryImage, agency } =
     property
 
+  const type = normalizeKey(property.type ?? property.propertyType) ?? 'other'
+  const transaction = normalizeKey(property.transaction ?? property.priceType) ?? 'sale'
   const imageUrl = primaryImage?.thumbnailUrl || primaryImage?.url
   const location = [parish, city].filter(Boolean).join(', ') || 'Pombal'
   const typeLabel = TYPE_LABELS[type] || type
   const transactionLabel = TRANSACTION_LABELS[transaction] || transaction
-  const pricePerM2 = formatPricePerM2(price, areaM2, transaction)
+  const pricePerM2 = formatPricePerM2(price, areaM2, transaction === 'rent' ? 'rent' : 'sale')
+  const listedDate = formatListingDate(property.publishedAt ?? property.firstSeenAt ?? property.createdAt)
 
   return (
     <div className="group bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
@@ -90,6 +108,13 @@ export default function ListingCard({ property, onFavoriteToggle }: ListingCardP
           <MapPin className="w-3.5 h-3.5 shrink-0" />
           <span>{location}</span>
         </p>
+
+        {listedDate && (
+          <p className="text-xs text-gray-500 truncate flex items-center gap-1">
+            <CalendarDays className="w-3.5 h-3.5 shrink-0" />
+            <span>Listado em {listedDate}</span>
+          </p>
+        )}
 
         {/* Badges */}
         <div className="flex flex-wrap gap-1.5 pt-1">

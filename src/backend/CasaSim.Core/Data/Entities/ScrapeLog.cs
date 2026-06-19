@@ -23,6 +23,8 @@ public sealed class ScrapeLog
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset FirstSeenAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset LastSeenAt { get; set; } = DateTimeOffset.UtcNow;
+
+    public ICollection<ScrapeListingChange> ListingChanges { get; set; } = new List<ScrapeListingChange>();
 }
 
 public enum ScrapeStatus

@@ -8,7 +8,7 @@ public sealed class ListingQueryService : IListingQueryService
 {
     private static readonly HashSet<string> ValidSortFields = new(StringComparer.OrdinalIgnoreCase)
     {
-        "Price", "AreaM2", "Bedrooms", "PublishedAt", "UpdatedAt", "CreatedAt",
+        "Price", "AreaM2", "Bedrooms", "PublishedAt", "FirstSeenAt", "LastSeenAt", "UpdatedAt", "CreatedAt",
     };
 
     private static readonly HashSet<string> ValidSortDirections = new(StringComparer.OrdinalIgnoreCase)
@@ -85,6 +85,8 @@ public sealed class ListingQueryService : IListingQueryService
                     })
                     .FirstOrDefault(),
                 PublishedAt = l.PublishedAt,
+                FirstSeenAt = l.FirstSeenAt,
+                LastSeenAt = l.LastSeenAt,
                 CreatedAt = l.CreatedAt,
                 UpdatedAt = l.UpdatedAt,
             })
@@ -196,7 +198,9 @@ public sealed class ListingQueryService : IListingQueryService
             "price"       => ascending ? query.OrderBy(l => l.Price)       : query.OrderByDescending(l => l.Price),
             "aream2"      => ascending ? query.OrderBy(l => l.AreaM2)      : query.OrderByDescending(l => l.AreaM2),
             "bedrooms"    => ascending ? query.OrderBy(l => l.Bedrooms)    : query.OrderByDescending(l => l.Bedrooms),
-            "publishedat" => ascending ? query.OrderBy(l => l.PublishedAt) : query.OrderByDescending(l => l.PublishedAt),
+            "publishedat" => ascending ? query.OrderBy(l => l.PublishedAt ?? l.FirstSeenAt) : query.OrderByDescending(l => l.PublishedAt ?? l.FirstSeenAt),
+            "firstseenat" => ascending ? query.OrderBy(l => l.FirstSeenAt) : query.OrderByDescending(l => l.FirstSeenAt),
+            "lastseenat"  => ascending ? query.OrderBy(l => l.LastSeenAt)  : query.OrderByDescending(l => l.LastSeenAt),
             "updatedat"   => ascending ? query.OrderBy(l => l.UpdatedAt)   : query.OrderByDescending(l => l.UpdatedAt),
             "createdat"   => ascending ? query.OrderBy(l => l.CreatedAt)   : query.OrderByDescending(l => l.CreatedAt),
             _             => query.OrderByDescending(l => l.UpdatedAt),

@@ -19,6 +19,8 @@ public sealed class ListingSummaryDto
     public ListingImageDto? PrimaryImage { get; init; }
 
     public DateTimeOffset? PublishedAt { get; init; }
+    public DateTimeOffset FirstSeenAt { get; init; }
+    public DateTimeOffset LastSeenAt { get; init; }
     public DateTimeOffset CreatedAt { get; init; }
     public DateTimeOffset UpdatedAt { get; init; }
 }

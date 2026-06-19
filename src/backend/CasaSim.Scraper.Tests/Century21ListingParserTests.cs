@@ -59,6 +59,7 @@ public sealed class Century21ListingParserTests
 
         // DiscoveredAt from entered_market
         Assert.Equal(new DateTime(2026, 6, 3, 0, 0, 0, DateTimeKind.Utc), listing.DiscoveredAt);
+        Assert.Equal(new DateTime(2026, 6, 3, 0, 0, 0, DateTimeKind.Utc), listing.PublishedAt);
 
         // Description built from characteristics
         Assert.NotNull(listing.Description);

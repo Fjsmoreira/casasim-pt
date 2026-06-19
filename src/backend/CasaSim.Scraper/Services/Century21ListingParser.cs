@@ -64,6 +64,7 @@ public sealed class Century21ListingParser
     {
         try
         {
+            var enteredMarket = ParseEnteredMarket(GetString(item, "entered_market"));
             var listing = new ParsedListing
             {
                 ExternalId = GetString(item, "reference") ?? string.Empty,
@@ -88,7 +89,8 @@ public sealed class Century21ListingParser
                 Images = ExtractImages(item),
                 ListingUrl = GetString(item, "link"),
                 Status = PropertyStatus.Active,
-                DiscoveredAt = ParseEnteredMarket(GetString(item, "entered_market")),
+                PublishedAt = enteredMarket,
+                DiscoveredAt = enteredMarket ?? DateTime.UtcNow,
             };
 
             return listing;
@@ -180,15 +182,15 @@ public sealed class Century21ListingParser
     /// Parse the entered_market date string.
     /// Format: "2026-06-03T00:00:00.000Z"
     /// </summary>
-    private static DateTime ParseEnteredMarket(string? enteredMarket)
+    private static DateTime? ParseEnteredMarket(string? enteredMarket)
     {
         if (string.IsNullOrEmpty(enteredMarket))
-            return DateTime.UtcNow;
+            return null;
 
         if (DateTime.TryParse(enteredMarket, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal, out var dt))
             return dt;
 
-        return DateTime.UtcNow;
+        return null;
     }
 
     /// <summary>

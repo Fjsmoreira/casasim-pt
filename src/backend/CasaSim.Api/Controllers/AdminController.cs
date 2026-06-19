@@ -205,4 +205,254 @@ public sealed class AdminController : ControllerBase
             lastRunOverall = lastRunOverall == default ? default(DateTimeOffset?) : lastRunOverall,
         });
     }
+
+    [HttpGet("scraper-sources")]
+    public async Task<ActionResult<object>> GetScraperSources(CancellationToken ct)
+    {
+        var sources = await _db.ScraperSources
+            .AsNoTracking()
+            .Include(s => s.Agency)
+            .OrderBy(s => s.Name)
+            .ToListAsync(ct);
+
+        var latestRuns = await _db.ScrapeLogs
+            .AsNoTracking()
+            .GroupBy(sl => sl.SourceName)
+            .Select(g => g.OrderByDescending(sl => sl.StartedAt).First())
+            .ToListAsync(ct);
+
+        var latestBySource = latestRuns.ToDictionary(sl => sl.SourceName, StringComparer.OrdinalIgnoreCase);
+
+        return Ok(sources.Select(s =>
+        {
+            latestBySource.TryGetValue(s.ScraperKey, out var latest);
+            return new
+            {
+                s.Id,
+                s.Name,
+                s.ScraperKey,
+                s.AgencySlug,
+                agencyName = s.Agency != null ? s.Agency.Name : null,
+                s.SourceUrl,
+                s.TargetDescription,
+                s.Enabled,
+                interval = s.Interval.ToString(),
+                s.UpdatedAt,
+                latestRun = latest is null ? null : new
+                {
+                    latest.Id,
+                    status = latest.Status.ToString(),
+                    latest.StartedAt,
+                    latest.CompletedAt,
+                    latest.ListingsFound,
+                    latest.ListingsCreated,
+                    latest.ListingsUpdated,
+                    latest.ListingsRemoved,
+                    latest.ErrorMessage,
+                },
+            };
+        }));
+    }
+
+    [HttpPatch("scraper-sources/{id:guid}")]
+    public async Task<ActionResult<object>> UpdateScraperSource(
+        Guid id,
+        [FromBody] UpdateScraperSourceRequest request,
+        CancellationToken ct)
+    {
+        var source = await _db.ScraperSources.FindAsync(new object[] { id }, ct);
+        if (source is null)
+            return NotFound();
+
+        source.Enabled = request.Enabled;
+        source.UpdatedAt = DateTimeOffset.UtcNow;
+        await _db.SaveChangesAsync(ct);
+
+        return Ok(new
+        {
+            source.Id,
+            source.Name,
+            source.ScraperKey,
+            source.AgencySlug,
+            source.SourceUrl,
+            source.TargetDescription,
+            source.Enabled,
+            interval = source.Interval.ToString(),
+            source.UpdatedAt,
+        });
+    }
+
+    [HttpGet("scrape-runs")]
+    public async Task<ActionResult<PagedResult<object>>> GetScrapeRuns(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 25,
+        [FromQuery] string? sourceName = null,
+        [FromQuery] string? status = null,
+        CancellationToken ct = default)
+    {
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 100);
+
+        IQueryable<ScrapeLog> query = _db.ScrapeLogs
+            .AsNoTracking()
+            .Include(sl => sl.Agency);
+
+        if (!string.IsNullOrWhiteSpace(sourceName))
+            query = query.Where(sl => sl.SourceName == sourceName);
+
+        if (!string.IsNullOrWhiteSpace(status) &&
+            Enum.TryParse<ScrapeStatus>(status, ignoreCase: true, out var statusFilter))
+        {
+            query = query.Where(sl => sl.Status == statusFilter);
+        }
+
+        var total = await query.CountAsync(ct);
+        var rows = await query
+            .OrderByDescending(sl => sl.StartedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(sl => new
+            {
+                sl.Id,
+                sl.SourceName,
+                sl.SourceUrl,
+                agencyName = sl.Agency != null ? sl.Agency.Name : null,
+                agencySlug = sl.Agency != null ? sl.Agency.Slug : null,
+                status = sl.Status.ToString(),
+                sl.StartedAt,
+                sl.CompletedAt,
+                sl.ListingsFound,
+                sl.ListingsCreated,
+                sl.ListingsUpdated,
+                sl.ListingsRemoved,
+                sl.ErrorMessage,
+            })
+            .ToListAsync(ct);
+
+        var items = rows.Select(sl => (object)new
+        {
+            sl.Id,
+            sl.SourceName,
+            sl.SourceUrl,
+            sl.agencyName,
+            sl.agencySlug,
+            sl.status,
+            sl.StartedAt,
+            sl.CompletedAt,
+            durationSeconds = sl.CompletedAt == null
+                ? null
+                : (double?)(sl.CompletedAt.Value - sl.StartedAt).TotalSeconds,
+            sl.ListingsFound,
+            sl.ListingsCreated,
+            sl.ListingsUpdated,
+            sl.ListingsRemoved,
+            sl.ErrorMessage,
+        }).ToList();
+
+        return Ok(new PagedResult<object>
+        {
+            Items = items,
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = total,
+        });
+    }
+
+    [HttpGet("scrape-runs/{id:guid}")]
+    public async Task<ActionResult<object>> GetScrapeRun(Guid id, CancellationToken ct)
+    {
+        var run = await _db.ScrapeLogs
+            .AsNoTracking()
+            .Include(sl => sl.Agency)
+            .FirstOrDefaultAsync(sl => sl.Id == id, ct);
+
+        if (run is null)
+            return NotFound();
+
+        var source = await _db.ScraperSources
+            .AsNoTracking()
+            .FirstOrDefaultAsync(s => s.ScraperKey == run.SourceName, ct);
+
+        return Ok(new
+        {
+            run.Id,
+            run.SourceName,
+            run.SourceUrl,
+            sourceTargetDescription = source?.TargetDescription,
+            agencyName = run.Agency != null ? run.Agency.Name : null,
+            agencySlug = run.Agency != null ? run.Agency.Slug : null,
+            status = run.Status.ToString(),
+            run.StartedAt,
+            run.CompletedAt,
+            durationSeconds = run.CompletedAt == null
+                ? null
+                : (double?)(run.CompletedAt.Value - run.StartedAt).TotalSeconds,
+            run.ListingsFound,
+            run.ListingsCreated,
+            run.ListingsUpdated,
+            run.ListingsRemoved,
+            run.ErrorMessage,
+            run.ErrorDetails,
+        });
+    }
+
+    [HttpGet("scrape-runs/{id:guid}/changes")]
+    public async Task<ActionResult<PagedResult<object>>> GetScrapeRunChanges(
+        Guid id,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50,
+        [FromQuery] string? action = null,
+        CancellationToken ct = default)
+    {
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 200);
+
+        var runExists = await _db.ScrapeLogs.AnyAsync(sl => sl.Id == id, ct);
+        if (!runExists)
+            return NotFound();
+
+        IQueryable<ScrapeListingChange> query = _db.ScrapeListingChanges
+            .AsNoTracking()
+            .Where(c => c.ScrapeLogId == id);
+
+        if (!string.IsNullOrWhiteSpace(action) &&
+            Enum.TryParse<ScrapeListingChangeAction>(action, ignoreCase: true, out var actionFilter))
+        {
+            query = query.Where(c => c.Action == actionFilter);
+        }
+
+        var total = await query.CountAsync(ct);
+        var items = await query
+            .OrderByDescending(c => c.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(c => new
+            {
+                c.Id,
+                c.ScrapeLogId,
+                c.ListingId,
+                action = c.Action.ToString(),
+                c.AgencySlug,
+                c.ExternalId,
+                c.Title,
+                c.SourceUrl,
+                c.ChangeSummaryJson,
+                c.CreatedAt,
+            })
+            .Cast<object>()
+            .ToListAsync(ct);
+
+        return Ok(new PagedResult<object>
+        {
+            Items = items,
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = total,
+        });
+    }
+}
+
+public sealed class UpdateScraperSourceRequest
+{
+    public bool Enabled { get; init; }
 }

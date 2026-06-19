@@ -7,7 +7,9 @@ export interface ListingSummary {
   title: string
   price: number
   type: 'house' | 'apartment' | 'land' | 'commercial' | 'other'
+  propertyType?: string
   transaction: 'sale' | 'rent'
+  priceType?: string
   bedrooms?: number
   bathrooms?: number
   areaM2?: number
@@ -32,6 +34,9 @@ export interface ListingSummary {
   source?: string
   latitude?: number
   longitude?: number
+  publishedAt?: string
+  firstSeenAt?: string
+  lastSeenAt?: string
   createdAt?: string
   updatedAt?: string
 }
@@ -42,7 +47,9 @@ export interface ListingDetail {
   title: string
   price: number
   type: 'house' | 'apartment' | 'land' | 'commercial' | 'other'
+  propertyType?: string
   transaction: 'sale' | 'rent'
+  priceType?: string
   bedrooms?: number
   bathrooms?: number
   areaM2?: number
@@ -60,6 +67,9 @@ export interface ListingDetail {
   agencyEmail?: string
   latitude?: number
   longitude?: number
+  publishedAt?: string
+  firstSeenAt?: string
+  lastSeenAt?: string
   createdAt?: string
   updatedAt?: string
 }
@@ -74,8 +84,12 @@ export interface ListingsParams {
   minPrice?: number
   maxPrice?: number
   minBedrooms?: number
+  minAreaM2?: number
   city?: string
   locality?: string
+  agencySlug?: string
+  sortBy?: string
+  sortDirection?: string
 }
 
 /** Response from GET /api/listings (paginated listing) */
@@ -178,4 +192,69 @@ export interface ScraperStatusResponse {
   runCounts: Record<string, number>
   recentErrors: ScraperError[]
   lastRunOverall: string | null
+}
+
+export interface AdminScraperSource {
+  id: string
+  name: string
+  scraperKey: string
+  agencySlug: string
+  agencyName: string | null
+  sourceUrl: string | null
+  targetDescription: string | null
+  enabled: boolean
+  interval: string
+  updatedAt: string
+  latestRun: ScraperRunSummary | null
+}
+
+export interface ScraperRunSummary {
+  id: string
+  sourceName: string
+  sourceUrl: string | null
+  agencyName: string | null
+  agencySlug: string | null
+  status: 'Started' | 'Succeeded' | 'PartiallySucceeded' | 'Failed' | 'Cancelled'
+  startedAt: string
+  completedAt: string | null
+  durationSeconds: number | null
+  listingsFound: number
+  listingsCreated: number
+  listingsUpdated: number
+  listingsRemoved: number
+  errorMessage: string | null
+}
+
+export interface ScraperRunDetail extends ScraperRunSummary {
+  sourceTargetDescription: string | null
+  errorDetails: string | null
+}
+
+export interface ScrapeListingChange {
+  id: string
+  scrapeLogId: string
+  listingId: string | null
+  action: 'Created' | 'Updated' | 'Removed' | 'Skipped'
+  agencySlug: string
+  externalId: string
+  title: string | null
+  sourceUrl: string | null
+  changeSummaryJson: string | null
+  createdAt: string
+}
+
+export interface ScraperRunsResponse {
+  items: ScraperRunSummary[]
+  page: number
+  pageSize: number
+  totalCount: number
+  totalPages: number
+}
+
+export interface ScrapeListingChangesResponse {
+  items: ScrapeListingChange[]
+  page: number
+  pageSize: number
+  totalCount: number
+  totalPages: number
 }

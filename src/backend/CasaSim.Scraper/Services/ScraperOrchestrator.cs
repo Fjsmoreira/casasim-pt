@@ -1,7 +1,10 @@
 using CasaSim.Core.Interfaces;
+using CasaSim.Core.Data.Entities;
+using CasaSim.Api;
 using CasaSim.Scraper.Configuration;
 using CasaSim.Scraper.Diagnostics;
 using System.Diagnostics;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -37,22 +40,8 @@ internal sealed class ScraperOrchestrator : BackgroundService
     {
         _logger.LogInformation("Scraper orchestrator started (PeriodicTimer mode)");
 
-        // Resolve scrapers and their config once (scrapers themselves are resolved
-        // fresh per cycle via scope factory, so DI lifetimes are respected).
-        var enabledSources = DiscoverEnabledSources();
-
-        if (enabledSources.Count == 0)
-        {
-            _logger.LogWarning("No enabled scraper sources found — orchestrator will idle");
-            await WaitIndefinitely(stoppingToken);
-            return;
-        }
-
-        var tickInterval = ComputeTickInterval(enabledSources);
-        _logger.LogInformation(
-            "Tick interval: {Interval} from {Count} enabled source(s): {Sources}",
-            tickInterval, enabledSources.Count,
-            string.Join(", ", enabledSources.Keys));
+        var tickInterval = TimeSpan.FromMinutes(1);
+        _logger.LogInformation("Tick interval: {Interval}", tickInterval);
 
         // ── Last-run tracking ──────────────────────────────────
         var lastRun = new Dictionary<string, DateTime>(StringComparer.OrdinalIgnoreCase);
@@ -63,19 +52,14 @@ internal sealed class ScraperOrchestrator : BackgroundService
         {
             var now = DateTime.UtcNow;
 
-            // Re-read config dynamically so changes take effect without restart.
-            var currentSources = _sourceOptions.CurrentValue;
-            var due = enabledSources
-                .Where(s => IsDue(s.Key, s.Value, currentSources, lastRun, now))
-                .Select(s => s.Value)
-                .ToList();
+            var due = await DiscoverDueSourcesAsync(lastRun, now, stoppingToken);
 
             if (due.Count == 0)
                 continue;
 
             _logger.LogDebug("Tick: {Count} source(s) due", due.Count);
 
-            foreach (var (agencyName, _) in due)
+            foreach (var source in due)
             {
                 if (stoppingToken.IsCancellationRequested)
                     break;
@@ -88,12 +72,12 @@ internal sealed class ScraperOrchestrator : BackgroundService
                 using var scope = _scopeFactory.CreateScope();
                 var services = scope.ServiceProvider;
 
-                var scraper = ResolveScraper(agencyName, services);
+                var scraper = ResolveScraper(source.ScraperKey, services);
                 if (scraper is null)
                     continue;
 
-                await RunSingleScraperAsync(scraper, services, stoppingToken);
-                lastRun[agencyName] = DateTime.UtcNow;
+                await RunSingleScraperAsync(scraper, source, services, stoppingToken);
+                lastRun[source.ScraperKey] = DateTime.UtcNow;
             }
         }
     }
@@ -104,33 +88,49 @@ internal sealed class ScraperOrchestrator : BackgroundService
     /// Returns <c>agencyName → (agencyName, ScraperSourceOptions)</c> for every
     /// enabled source that has a config section and is marked Enabled = true.
     /// </summary>
-    private Dictionary<string, (string AgencyName, ScraperSourceOptions Config)> DiscoverEnabledSources()
+    private async Task<List<ScraperSource>> DiscoverDueSourcesAsync(
+        Dictionary<string, DateTime> lastRun,
+        DateTime now,
+        CancellationToken ct)
     {
-        var result = new Dictionary<string, (string, ScraperSourceOptions)>(StringComparer.OrdinalIgnoreCase);
-
-        var allConfig = _sourceOptions.CurrentValue;
-        if (allConfig is null)
-            return result;
-
-        foreach (var (name, opts) in allConfig)
+        using var scope = _scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetService<AppDbContext>();
+        if (db is null)
         {
-            if (opts.Enabled)
-                result[name] = (name, opts);
+            return DiscoverDueSourcesFromConfiguration(lastRun, now);
         }
 
-        return result;
+        var sources = await db.ScraperSources
+            .AsNoTracking()
+            .Where(s => s.Enabled)
+            .OrderBy(s => s.Name)
+            .ToListAsync(ct);
+
+        return sources
+            .Where(s => IsDue(s.ScraperKey, s.Interval, lastRun, now))
+            .ToList();
     }
 
-    /// <summary>
-    /// The shortest interval among all enabled sources — this is our PeriodicTimer period.
-    /// Sources with longer intervals just skip ticks until they are due.
-    /// </summary>
-    private static TimeSpan ComputeTickInterval(
-        Dictionary<string, (string AgencyName, ScraperSourceOptions Config)> sources)
+    private List<ScraperSource> DiscoverDueSourcesFromConfiguration(
+        Dictionary<string, DateTime> lastRun,
+        DateTime now)
     {
-        var min = sources.Values.Min(s => s.Config.Interval);
-        // Clamp to at least 1 minute to avoid busy-waiting.
-        return min < TimeSpan.FromMinutes(1) ? TimeSpan.FromMinutes(1) : min;
+        var allConfig = _sourceOptions.CurrentValue;
+        if (allConfig is null)
+            return [];
+
+        return allConfig
+            .Where(kvp => kvp.Value.Enabled)
+            .Where(kvp => IsDue(kvp.Key, kvp.Value.Interval, lastRun, now))
+            .Select(kvp => new ScraperSource
+            {
+                Name = kvp.Key,
+                ScraperKey = kvp.Key,
+                AgencySlug = ListingUpsertService.ResolveAgencySlug(kvp.Key) ?? string.Empty,
+                Interval = kvp.Value.Interval,
+                Enabled = kvp.Value.Enabled,
+            })
+            .ToList();
     }
 
     /// <summary>
@@ -139,20 +139,14 @@ internal sealed class ScraperOrchestrator : BackgroundService
     /// </summary>
     private static bool IsDue(
         string name,
-        (string AgencyName, ScraperSourceOptions Config) source,
-        Dictionary<string, ScraperSourceOptions>? currentConfig,
+        TimeSpan interval,
         Dictionary<string, DateTime> lastRun,
         DateTime now)
     {
-        // Re-read config for this source (live without restart).
-        var opts = currentConfig?.GetValueOrDefault(name) ?? source.Config;
-        if (!opts.Enabled)
-            return false;
-
         if (!lastRun.TryGetValue(name, out var last))
             return true; // never run → due
 
-        return now - last >= opts.Interval;
+        return now - last >= interval;
     }
 
     /// <summary>
@@ -191,11 +185,14 @@ internal sealed class ScraperOrchestrator : BackgroundService
     /// </summary>
     private async Task RunSingleScraperAsync(
         IPropertyScraper scraper,
+        ScraperSource source,
         IServiceProvider services,
         CancellationToken ct)
     {
         var agencyName = scraper.AgencyName;
-        var agencySlug = ListingUpsertService.ResolveAgencySlug(agencyName);
+        var agencySlug = !string.IsNullOrWhiteSpace(source.AgencySlug)
+            ? source.AgencySlug
+            : ListingUpsertService.ResolveAgencySlug(agencyName);
 
         using var scraperScope = LogContext.PushProperty("scraperName", scraper.GetType().Name);
 
@@ -224,7 +221,7 @@ internal sealed class ScraperOrchestrator : BackgroundService
 
         var logging = services.GetRequiredService<ScrapeLoggingService>();
         var agencyId = await logging.ResolveAgencyIdAsync(agencySlug, ct);
-        var logId = await logging.StartLogAsync(agencyName, sourceUrl: null, agencyId: agencyId, ct: ct);
+        var logId = await logging.StartLogAsync(agencyName, source.SourceUrl, agencyId, ct: ct);
 
         IReadOnlyList<Core.Models.Property> properties;
         try
@@ -247,11 +244,16 @@ internal sealed class ScraperOrchestrator : BackgroundService
             }
 
             var upsertService = services.GetRequiredService<ListingUpsertService>();
-            var result = await upsertService.UpsertBatchAsync(properties, agencySlug, ct);
+            var result = await upsertService.UpsertBatchAsync(properties, agencySlug, logId, ct);
+            var seenExternalIds = properties
+                .Select(p => p.ExternalId)
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var removed = await upsertService.MarkMissingListingsRemovedAsync(agencySlug, seenExternalIds, logId, ct);
 
             _logger.LogInformation(
-                "{Agency}: {Created} created, {Updated} updated, {Skipped} skipped",
-                agencyName, result.Created, result.Updated, result.Skipped);
+                "{Agency}: {Created} created, {Updated} updated, {Skipped} skipped, {Removed} removed",
+                agencyName, result.Created, result.Updated, result.Skipped, removed);
 
             // Record upserted count metric
             ScraperDiagnostics.ListingsUpsertedTotal.Add(result.Created,
@@ -271,7 +273,7 @@ internal sealed class ScraperOrchestrator : BackgroundService
                 listingsFound: properties.Count,
                 listingsCreated: result.Created,
                 listingsUpdated: result.Updated,
-                listingsRemoved: 0,
+                listingsRemoved: removed,
                 ct: ct);
         }
         catch (Exception ex)

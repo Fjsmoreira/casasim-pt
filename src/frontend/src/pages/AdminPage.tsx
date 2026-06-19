@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import apiClient from '../lib/api'
 import type { AdminListingsResponse, AdminAgency } from '../types/api'
-import ScraperStatusPanel from '../components/ScraperStatusPanel'
+import AdminScraperPanel from '../components/AdminScraperPanel'
 
 interface DashboardData {
   totalListings: number
@@ -11,7 +11,7 @@ interface DashboardData {
   scrapedToday: number
 }
 
-type AdminTab = 'dashboard' | 'listings'
+type AdminTab = 'dashboard' | 'listings' | 'scrapers'
 
 const LISTING_STATUSES = ['Active', 'Reserved', 'Pending', 'Sold', 'Rented', 'Removed', 'Archived']
 
@@ -52,7 +52,6 @@ export default function AdminPage() {
   const [dashboard, setDashboard] = useState<DashboardData | null>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [scraperError, setScraperError] = useState('')
 
   // Tab state
   const [activeTab, setActiveTab] = useState<AdminTab>('dashboard')
@@ -241,6 +240,16 @@ export default function AdminPage() {
           >
             Listagens
           </button>
+          <button
+            onClick={() => setActiveTab('scrapers')}
+            className={`pb-3 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'scrapers'
+                ? 'border-emerald-700 text-emerald-700'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Scrapers
+          </button>
         </nav>
       </div>
 
@@ -263,12 +272,6 @@ export default function AdminPage() {
             </div>
           )}
 
-          {scraperError && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md mb-6">
-              {scraperError}
-            </div>
-          )}
-
           {dashboard && (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -285,12 +288,6 @@ export default function AdminPage() {
               </div>
             </div>
           )}
-
-          {/* Scraper Status Panel */}
-          <ScraperStatusPanel
-            onFetchSuccess={() => setScraperError('')}
-            onError={(msg) => setScraperError(msg)}
-          />
         </>
       )}
 
@@ -520,6 +517,16 @@ export default function AdminPage() {
             </div>
           )}
         </div>
+      )}
+
+      {activeTab === 'scrapers' && (
+        <AdminScraperPanel
+          onAuthExpired={() => {
+            sessionStorage.removeItem('casasim-admin-key')
+            setApiKey('')
+            setError('Sessão expirada. Faça login novamente.')
+          }}
+        />
       )}
     </div>
   )
