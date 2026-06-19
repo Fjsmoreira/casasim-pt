@@ -3,6 +3,7 @@ using CasaSim.Core.Data.Entities;
 using CasaSim.Core.Models;
 using CasaSim.Scraper.Diagnostics;
 using System.Diagnostics;
+using System.Linq;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -34,6 +35,48 @@ public sealed class ListingUpsertService
         ["Veigas"] = "veigas",
         ["Zome"] = "zome",
     };
+
+    /// <summary>
+    /// Freguesias and localities in the Pombal concelho (município).
+    /// Used to filter out listings from outside the target area.
+    /// </summary>
+    private static readonly HashSet<string> PombalConcelhoKeywords = new(StringComparer.OrdinalIgnoreCase)
+    {
+        // Freguesias of Pombal concelho
+        "Abiul",
+        "Albergaria dos Doze",
+        "Carnide",
+        "Carriço",
+        "Guia",
+        "Ilha",
+        "Louriçal",
+        "Mata Mourisca",
+        "Meirinhas",
+        "Pelariga",
+        "Pombal",
+        "Redinha",
+        "Santiago de Litém",
+        "São Simão de Litém",
+        "Vermoil",
+        "Vila Cã",
+        // Common abbreviations / variants
+        "S. Simão",
+        "S.Simão",
+        "Santiago Litém",
+    };
+
+    private static bool IsInPombalConcelho(Property property)
+    {
+        // Combine all text fields from the property for keyword matching.
+        var text = string.Join(" ",
+            property.Title ?? "",
+            property.Description ?? "",
+            property.Address ?? "",
+            property.City ?? "",
+            property.District ?? "");
+
+        return PombalConcelhoKeywords.Any(k => text.Contains(k, StringComparison.OrdinalIgnoreCase));
+    }
 
     private readonly AppDbContext _db;
     private readonly ILogger<ListingUpsertService> _logger;
@@ -67,6 +110,14 @@ public sealed class ListingUpsertService
         {
             _logger.LogWarning("Agency slug '{Slug}' not found in DB; skipping listing '{Id}'",
                 agencySlug, property.ExternalId);
+            return new ListingUpsertResult(ListingUpsertAction.Skipped, Guid.Empty);
+        }
+
+        // ── Pombal-area location filter ───────────────────────
+        if (!IsInPombalConcelho(property))
+        {
+            _logger.LogDebug("Listing '{Id}' ({Title}) is outside Pombal concelho; skipping",
+                property.ExternalId, property.Title);
             return new ListingUpsertResult(ListingUpsertAction.Skipped, Guid.Empty);
         }
 
