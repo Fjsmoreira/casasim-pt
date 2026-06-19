@@ -29,6 +29,7 @@ public sealed class AppDbContext : DbContext
 
     private static void ConfigureAgency(EntityTypeBuilder<Agency> entity)
     {
+        entity.ToTable("agency");
         entity.HasKey(e => e.Id);
 
         entity.Property(e => e.Name)
@@ -88,6 +89,7 @@ public sealed class AppDbContext : DbContext
 
     private static void ConfigureListing(EntityTypeBuilder<Listing> entity)
     {
+        entity.ToTable("listing");
         entity.HasKey(e => e.Id);
 
         entity.Property(e => e.ExternalId)
@@ -167,6 +169,7 @@ public sealed class AppDbContext : DbContext
 
     private static void ConfigureListingImage(EntityTypeBuilder<ListingImage> entity)
     {
+        entity.ToTable("listing_image");
         entity.HasKey(e => e.Id);
 
         entity.Property(e => e.Url)
@@ -182,6 +185,7 @@ public sealed class AppDbContext : DbContext
 
     private static void ConfigureListingFeature(EntityTypeBuilder<ListingFeature> entity)
     {
+        entity.ToTable("listing_feature");
         entity.HasKey(e => e.Id);
 
         entity.Property(e => e.Name)
@@ -201,6 +205,7 @@ public sealed class AppDbContext : DbContext
 
     private static void ConfigureLocation(EntityTypeBuilder<Location> entity)
     {
+        entity.ToTable("location");
         entity.HasKey(e => e.Id);
 
         entity.Property(e => e.AddressLine1)
@@ -245,6 +250,7 @@ public sealed class AppDbContext : DbContext
 
     private static void ConfigureScrapeLog(EntityTypeBuilder<ScrapeLog> entity)
     {
+        entity.ToTable("scrape_log");
         entity.HasKey(e => e.Id);
 
         entity.Property(e => e.SourceName)
