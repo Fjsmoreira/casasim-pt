@@ -3,6 +3,7 @@ using CasaSim.Api.Services;
 using CasaSim.Core.Interfaces;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Npgsql;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
@@ -51,6 +52,8 @@ try
             options.UseNpgsql(connStr, npgsql =>
                 npgsql.UseNetTopologySuite());
             options.UseSnakeCaseNamingConvention();
+            options.ConfigureWarnings(w =>
+                w.Ignore(RelationalEventId.PendingModelChangesWarning));
         }
     });
 
