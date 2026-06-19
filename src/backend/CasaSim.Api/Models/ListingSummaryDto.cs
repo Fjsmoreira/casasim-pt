@@ -10,6 +10,7 @@ public sealed class ListingSummaryDto
     public string PropertyType { get; init; } = string.Empty;
     public string Status { get; init; } = string.Empty;
     public string? City { get; init; }
+    public string? Parish { get; init; }
     public int? Bedrooms { get; init; }
     public int? Bathrooms { get; init; }
     public decimal? AreaM2 { get; init; }

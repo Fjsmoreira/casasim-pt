@@ -1,8 +1,10 @@
 import { MapContainer, TileLayer, GeoJSON, useMap } from 'react-leaflet'
+import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import L from 'leaflet'
 import { useMapListings } from '@/hooks/useMapListings'
 import type { MapPropertiesResponse } from '@/types/api'
-import { Loader2 } from 'lucide-react'
+import { ArrowLeft, Loader2 } from 'lucide-react'
+import type { ListingsParams } from '@/types/api'
 
 // ── Default marker icon fix for Leaflet + bundlers ──
 // Leaflet's default icon assets fail in bundlers because the image paths
@@ -59,8 +61,8 @@ function popupContent(p: MapPropertiesResponse['features'][number]['properties']
 }
 
 // ── Inner component: uses the map instance via useMap() ──
-function MapContent() {
-  const { data, isLoading, isError } = useMapListings()
+function MapContent({ filters }: { filters: ListingsParams }) {
+  const { data, isLoading, isError } = useMapListings(filters)
   const map = useMap()
 
   if (isLoading) {
@@ -113,11 +115,22 @@ function MapContent() {
 
 // ── Page component ──
 export default function MapPage() {
+  const [searchParams] = useSearchParams()
+  const location = useLocation()
+  const returnTo = (location.state as { returnTo?: string } | null)?.returnTo ?? `/search${location.search}`
+  const numberParam = (key: string) => searchParams.get(key) ? Number(searchParams.get(key)) : undefined
+  const filters: ListingsParams = {
+    type: searchParams.get('type') ?? undefined,
+    transaction: searchParams.get('transaction') ?? undefined,
+    minPrice: numberParam('minPrice'), maxPrice: numberParam('maxPrice'), minBedrooms: numberParam('minBedrooms'),
+    locality: searchParams.get('locality') ?? undefined,
+  }
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-2xl font-bold text-gray-900 mb-4">Mapa</h1>
+      <Link to={returnTo} className="mb-4 inline-flex items-center gap-1 text-sm font-medium text-emerald-700 hover:text-emerald-900"><ArrowLeft className="size-4" />Voltar aos resultados</Link>
+      <h1 className="text-2xl font-bold text-gray-900 mb-1">Mapa de imóveis</h1>
       <p className="text-gray-500 mb-6">
-        Explore os imóveis no mapa interativo.
+        Os imóveis apresentados correspondem aos filtros da sua pesquisa.
       </p>
       <div className="h-[600px] rounded-lg overflow-hidden border border-gray-200 relative">
         <MapContainer
@@ -130,7 +143,7 @@ export default function MapPage() {
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
-          <MapContent />
+          <MapContent filters={filters} />
         </MapContainer>
       </div>
     </div>

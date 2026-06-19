@@ -57,6 +57,7 @@ public sealed class ListingQueryService : IListingQueryService
                 PropertyType = l.PropertyType.ToString(),
                 Status = l.Status.ToString(),
                 City = l.City,
+                Parish = l.Location != null ? l.Location.Parish : null,
                 Bedrooms = l.Bedrooms,
                 Bathrooms = l.Bathrooms,
                 AreaM2 = l.AreaM2,

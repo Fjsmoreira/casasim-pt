@@ -84,6 +84,7 @@ export default function AdminScraperPanel({ onAuthExpired }: AdminScraperPanelPr
   const [error, setError] = useState('')
   const [runsPage, setRunsPage] = useState(1)
   const [savingSourceId, setSavingSourceId] = useState<string | null>(null)
+  const [runningSourceId, setRunningSourceId] = useState<string | null>(null)
 
   const selectedRunSummary = useMemo(
     () => runs?.items.find((run) => run.id === selectedRunId) ?? null,
@@ -168,6 +169,19 @@ export default function AdminScraperPanel({ onAuthExpired }: AdminScraperPanelPr
     }
   }
 
+  async function requestRun(source: AdminScraperSource) {
+    setRunningSourceId(source.id)
+    setError('')
+    try {
+      await apiClient.post(`/admin/scraper-sources/${source.id}/run`)
+      await fetchSources()
+    } catch (err) {
+      handleError(err, 'Erro ao pedir uma execucao manual.')
+    } finally {
+      setRunningSourceId(null)
+    }
+  }
+
   if (loading) {
     return <p className="text-gray-500">A carregar scrapers...</p>
   }
@@ -198,7 +212,7 @@ export default function AdminScraperPanel({ onAuthExpired }: AdminScraperPanelPr
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fonte</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Scrape</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ultima execucao</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Activo</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Accoes</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 bg-white">
@@ -237,7 +251,15 @@ export default function AdminScraperPanel({ onAuthExpired }: AdminScraperPanelPr
                       <span className="text-sm text-gray-400">Sem execucoes</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 align-top text-right">
+                  <td className="px-4 py-3 align-top">
+                    <div className="flex justify-end items-center gap-3">
+                    <button
+                      onClick={() => requestRun(source)}
+                      disabled={!source.enabled || source.manualRunRequestedAt !== null || runningSourceId === source.id}
+                      className="px-2 py-1 text-xs font-medium text-emerald-800 border border-emerald-300 rounded hover:bg-emerald-50 disabled:opacity-50"
+                    >
+                      {source.manualRunRequestedAt ? 'Na fila' : 'Executar'}
+                    </button>
                     <button
                       onClick={() => toggleSource(source)}
                       disabled={savingSourceId === source.id}
@@ -252,6 +274,7 @@ export default function AdminScraperPanel({ onAuthExpired }: AdminScraperPanelPr
                         }`}
                       />
                     </button>
+                    </div>
                   </td>
                 </tr>
               ))}

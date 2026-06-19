@@ -1,6 +1,5 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
 import ListingCard from '@/components/listing/ListingCard'
 import { mockListing, mockListingNoImage, mockListingRent } from './mocks/data'
 
@@ -68,29 +67,6 @@ describe('ListingCard', () => {
     const img = screen.getByRole('img')
     expect(img).toBeInTheDocument()
     expect(img).toHaveAttribute('src', 'https://example.com/photo_thumb.jpg')
-  })
-
-  it('calls onFavoriteToggle when favorite button is clicked', async () => {
-    const onFavoriteToggle = vi.fn()
-    const user = userEvent.setup()
-
-    render(<ListingCard property={mockListing} onFavoriteToggle={onFavoriteToggle} />)
-
-    const favButton = screen.getByLabelText('Adicionar aos favoritos')
-    await user.click(favButton)
-
-    expect(onFavoriteToggle).toHaveBeenCalledWith('prop-1')
-  })
-
-  it('toggles favorite aria-label on click', async () => {
-    const user = userEvent.setup()
-
-    render(<ListingCard property={mockListing} />)
-
-    const favButton = screen.getByLabelText('Adicionar aos favoritos')
-    await user.click(favButton)
-
-    expect(screen.getByLabelText('Remover dos favoritos')).toBeInTheDocument()
   })
 
   it('renders location defaulting to Pombal when no city/parish', () => {

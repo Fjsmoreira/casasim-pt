@@ -1,5 +1,4 @@
-import { useState } from 'react'
-import { Heart, Home, MapPin, Bed, CalendarDays } from 'lucide-react'
+import { Home, MapPin, Bed, CalendarDays, Building2 } from 'lucide-react'
 import { cn, formatPricePerM2 } from '@/lib/utils'
 import type { ListingSummary } from '@/types/api'
 
@@ -33,13 +32,10 @@ function formatListingDate(value?: string) {
 
 export interface ListingCardProps {
   property: ListingSummary
-  onFavoriteToggle?: (id: string) => void
 }
 
-export default function ListingCard({ property, onFavoriteToggle }: ListingCardProps) {
-  const [isFavorited, setIsFavorited] = useState(false)
-
-  const { id, title, price, bedrooms, areaM2, city, parish, primaryImage, agency } =
+export default function ListingCard({ property }: ListingCardProps) {
+  const { title, price, bedrooms, areaM2, city, parish, primaryImage, agency } =
     property
 
   const type = normalizeKey(property.type ?? property.propertyType) ?? 'other'
@@ -50,11 +46,12 @@ export default function ListingCard({ property, onFavoriteToggle }: ListingCardP
   const transactionLabel = TRANSACTION_LABELS[transaction] || transaction
   const pricePerM2 = formatPricePerM2(price, areaM2, transaction === 'rent' ? 'rent' : 'sale')
   const listedDate = formatListingDate(property.publishedAt ?? property.firstSeenAt ?? property.createdAt)
+  const status = property.status && property.status.toLowerCase() !== 'active' ? property.status : null
 
   return (
-    <div className="group bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5">
+    <article className="group flex overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
       {/* Image */}
-      <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
+      <div className="relative h-40 w-36 shrink-0 overflow-hidden bg-gray-100 sm:h-52 sm:w-72">
         {imageUrl ? (
           <img
             src={imageUrl}
@@ -62,31 +59,14 @@ export default function ListingCard({ property, onFavoriteToggle }: ListingCardP
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-emerald-100 to-emerald-200">
+          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-emerald-100 to-emerald-200">
             <Home className="w-12 h-12 text-emerald-400" />
           </div>
         )}
-
-        {/* Favorite button */}
-        <button
-          onClick={() => {
-            setIsFavorited(!isFavorited)
-            onFavoriteToggle?.(id)
-          }}
-          className={cn(
-            'absolute top-3 right-3 p-2 rounded-full bg-white/80 backdrop-blur-sm shadow-sm transition-all duration-200 hover:scale-110',
-            isFavorited ? 'text-red-500' : 'text-gray-400 hover:text-red-400',
-          )}
-          aria-label={
-            isFavorited ? 'Remover dos favoritos' : 'Adicionar aos favoritos'
-          }
-        >
-          <Heart className={cn('w-5 h-5', isFavorited && 'fill-current')} />
-        </button>
       </div>
 
       {/* Content */}
-      <div className="p-4 space-y-2">
+      <div className="min-w-0 flex-1 p-4 sm:p-5">
         {/* Price */}
         <p className="text-xl font-bold text-emerald-700">
           €{price.toLocaleString('pt-PT')}
@@ -99,7 +79,7 @@ export default function ListingCard({ property, onFavoriteToggle }: ListingCardP
         )}
 
         {/* Title */}
-        <h3 className="font-semibold text-gray-900 line-clamp-1 leading-tight">
+        <h3 className="mt-1 font-semibold text-gray-900 line-clamp-1 leading-tight">
           {title}
         </h3>
 
@@ -109,15 +89,8 @@ export default function ListingCard({ property, onFavoriteToggle }: ListingCardP
           <span>{location}</span>
         </p>
 
-        {listedDate && (
-          <p className="text-xs text-gray-500 truncate flex items-center gap-1">
-            <CalendarDays className="w-3.5 h-3.5 shrink-0" />
-            <span>Listado em {listedDate}</span>
-          </p>
-        )}
-
         {/* Badges */}
-        <div className="flex flex-wrap gap-1.5 pt-1">
+        <div className="mt-3 flex flex-wrap gap-1.5">
           {areaM2 && (
             <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded-md">
               {areaM2}m²
@@ -144,27 +117,12 @@ export default function ListingCard({ property, onFavoriteToggle }: ListingCardP
           </span>
         </div>
 
-        {/* Agency */}
-        {agency && (
-          <div className="pt-2 border-t border-gray-100">
-            <p className="text-xs text-gray-400 truncate">
-              {agency.websiteUrl ? (
-                <a
-                  href={agency.websiteUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-emerald-600 transition-colors"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {agency.name}
-                </a>
-              ) : (
-                agency.name
-              )}
-            </p>
-          </div>
-        )}
+        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-gray-100 pt-3 text-xs text-gray-500">
+          {agency && <span className="inline-flex items-center gap-1"><Building2 className="size-3.5" />{agency.name}</span>}
+          {listedDate && <span className="inline-flex items-center gap-1"><CalendarDays className="size-3.5" />Publicado {listedDate}</span>}
+          {status && <span className="font-medium text-amber-700">{status}</span>}
+        </div>
       </div>
-    </div>
+    </article>
   )
 }

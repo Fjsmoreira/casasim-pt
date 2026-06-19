@@ -14,6 +14,7 @@ public sealed class ScraperSource
     public string? TargetDescription { get; set; }
     public bool Enabled { get; set; } = true;
     public TimeSpan Interval { get; set; } = TimeSpan.FromHours(6);
+    public DateTimeOffset? ManualRunRequestedAt { get; set; }
 
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;

@@ -78,6 +78,9 @@ internal sealed class ScraperOrchestrator : BackgroundService
 
                 await RunSingleScraperAsync(scraper, source, services, stoppingToken);
                 lastRun[source.ScraperKey] = DateTime.UtcNow;
+
+                if (source.ManualRunRequestedAt is not null)
+                    await ClearManualRunRequestAsync(source.Id, source.ManualRunRequestedAt.Value, stoppingToken);
             }
         }
     }
@@ -107,7 +110,7 @@ internal sealed class ScraperOrchestrator : BackgroundService
             .ToListAsync(ct);
 
         return sources
-            .Where(s => IsDue(s.ScraperKey, s.Interval, lastRun, now))
+            .Where(s => s.ManualRunRequestedAt is not null || IsDue(s.ScraperKey, s.Interval, lastRun, now))
             .ToList();
     }
 
@@ -147,6 +150,20 @@ internal sealed class ScraperOrchestrator : BackgroundService
             return true; // never run → due
 
         return now - last >= interval;
+    }
+
+    private async Task ClearManualRunRequestAsync(Guid sourceId, DateTimeOffset requestedAt, CancellationToken ct)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetService<AppDbContext>();
+        if (db is null)
+            return;
+
+        await db.ScraperSources
+            .Where(s => s.Id == sourceId && s.ManualRunRequestedAt == requestedAt)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(s => s.ManualRunRequestedAt, (DateTimeOffset?)null)
+                .SetProperty(s => s.UpdatedAt, DateTimeOffset.UtcNow), ct);
     }
 
     /// <summary>

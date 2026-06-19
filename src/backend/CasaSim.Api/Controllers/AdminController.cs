@@ -237,6 +237,7 @@ public sealed class AdminController : ControllerBase
                 s.TargetDescription,
                 s.Enabled,
                 interval = s.Interval.ToString(),
+                s.ManualRunRequestedAt,
                 s.UpdatedAt,
                 latestRun = latest is null ? null : new
                 {
@@ -252,6 +253,26 @@ public sealed class AdminController : ControllerBase
                 },
             };
         }));
+    }
+
+    [HttpPost("scraper-sources/{id:guid}/run")]
+    public async Task<ActionResult<object>> RequestScraperRun(Guid id, CancellationToken ct)
+    {
+        var source = await _db.ScraperSources.FindAsync(new object[] { id }, ct);
+        if (source is null)
+            return NotFound();
+
+        if (!source.Enabled)
+            return BadRequest(new { message = "Enable the scraper source before requesting a run." });
+
+        if (source.ManualRunRequestedAt is null)
+        {
+            source.ManualRunRequestedAt = DateTimeOffset.UtcNow;
+            source.UpdatedAt = source.ManualRunRequestedAt.Value;
+            await _db.SaveChangesAsync(ct);
+        }
+
+        return Accepted(new { source.Id, source.Name, manualRunRequestedAt = source.ManualRunRequestedAt });
     }
 
     [HttpPatch("scraper-sources/{id:guid}")]

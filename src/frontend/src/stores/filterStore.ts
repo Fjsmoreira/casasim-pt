@@ -11,6 +11,7 @@ export interface FilterState {
   locality: string | undefined
   agencySlug: string | undefined
   sortBy: string | undefined
+  sortDirection: 'Asc' | 'Desc' | undefined
   mobileOpen: boolean
 
   setPriceMin: (val: number | undefined) => void
@@ -22,6 +23,8 @@ export interface FilterState {
   setLocality: (val: string | undefined) => void
   setAgencySlug: (val: string | undefined) => void
   setSortBy: (val: string | undefined) => void
+  setSortDirection: (val: 'Asc' | 'Desc' | undefined) => void
+  hydrate: (filters: Partial<Pick<FilterState, 'priceMin' | 'priceMax' | 'type' | 'bedrooms' | 'minAreaM2' | 'transaction' | 'locality' | 'agencySlug' | 'sortBy' | 'sortDirection'>>) => void
   setMobileOpen: (val: boolean) => void
   clearFilters: () => void
   toParams: () => ListingsParams
@@ -37,6 +40,7 @@ const initialState = {
   locality: undefined,
   agencySlug: undefined,
   sortBy: undefined,
+  sortDirection: undefined,
 }
 
 export const useFilterStore = create<FilterState>((set, get) => ({
@@ -52,12 +56,14 @@ export const useFilterStore = create<FilterState>((set, get) => ({
   setLocality: (val) => set({ locality: val }),
   setAgencySlug: (val) => set({ agencySlug: val }),
   setSortBy: (val) => set({ sortBy: val }),
+  setSortDirection: (val) => set({ sortDirection: val }),
+  hydrate: (filters) => set({ ...initialState, ...filters }),
   setMobileOpen: (val) => set({ mobileOpen: val }),
 
   clearFilters: () => set({ ...initialState }),
 
   toParams: () => {
-    const { priceMin, priceMax, type, bedrooms, minAreaM2, transaction, locality, agencySlug, sortBy } = get()
+    const { priceMin, priceMax, type, bedrooms, minAreaM2, transaction, locality, agencySlug, sortBy, sortDirection } = get()
     const params: ListingsParams = {}
     if (priceMin !== undefined) params.minPrice = priceMin
     if (priceMax !== undefined) params.maxPrice = priceMax
@@ -69,7 +75,7 @@ export const useFilterStore = create<FilterState>((set, get) => ({
     if (agencySlug) params.agencySlug = agencySlug
     if (sortBy) {
       params.sortBy = sortBy
-      params.sortDirection = 'Desc'
+      params.sortDirection = sortDirection ?? 'Desc'
     }
     return params
   },

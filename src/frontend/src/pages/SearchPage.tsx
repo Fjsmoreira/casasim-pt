@@ -1,327 +1,83 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
-import { MapContainer, TileLayer } from 'react-leaflet'
-import L from 'leaflet'
-
-// Fix default marker icons in webpack/vite builds
-import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png'
-import markerIcon from 'leaflet/dist/images/marker-icon.png'
-import markerShadow from 'leaflet/dist/images/marker-shadow.png'
-
-delete (L.Icon.Default.prototype as { _getIconUrl?: unknown })._getIconUrl
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: markerIcon2x,
-  iconUrl: markerIcon,
-  shadowUrl: markerShadow,
-})
-
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Link, useLocation, useSearchParams } from 'react-router-dom'
+import { AlertCircle, Map, RefreshCw, Search } from 'lucide-react'
 import { useListings } from '@/hooks'
 import { useFilterStore } from '@/stores/filterStore'
-import FilterSidebar, { FilterMobileTrigger } from '@/components/FilterSidebar'
+import SearchControls, { SortControl } from '@/components/SearchControls'
 import ListingCard from '@/components/listing/ListingCard'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, ArrowRight, Search, AlertCircle, RefreshCw } from 'lucide-react'
 import type { ListingSummary } from '@/types/api'
 
-/* ─────── Skeleton card for loading state ─────── */
-
-function ListingCardSkeleton() {
-  return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden animate-pulse">
-      <div className="aspect-[4/3] bg-gray-200" />
-      <div className="p-4 space-y-3">
-        <div className="h-6 w-24 bg-gray-200 rounded" />
-        <div className="h-4 w-full bg-gray-200 rounded" />
-        <div className="h-3 w-32 bg-gray-200 rounded" />
-        <div className="flex gap-2 pt-1">
-          <div className="h-5 w-14 bg-gray-100 rounded-md" />
-          <div className="h-5 w-16 bg-gray-100 rounded-md" />
-        </div>
-      </div>
-    </div>
-  )
+function ListingSkeleton() {
+  return <div className="flex overflow-hidden rounded-xl border border-gray-200 bg-white animate-pulse"><div className="h-40 w-44 shrink-0 bg-gray-200 sm:h-48 sm:w-64" /><div className="flex-1 space-y-3 p-5"><div className="h-6 w-32 rounded bg-gray-200" /><div className="h-5 w-3/4 rounded bg-gray-200" /><div className="h-4 w-1/2 rounded bg-gray-100" /><div className="h-6 w-48 rounded bg-gray-100" /></div></div>
 }
 
-function ListingGridSkeleton() {
-  return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
-      {Array.from({ length: 6 }).map((_, i) => (
-        <ListingCardSkeleton key={i} />
-      ))}
-    </div>
-  )
-}
-
-/* ─────── Pagination ─────── */
-
-interface PaginationProps {
-  page: number
-  totalPages: number
-  onPageChange: (page: number) => void
-}
-
-function Pagination({ page, totalPages, onPageChange }: PaginationProps) {
+function Pagination({ page, totalPages, onPageChange }: { page: number; totalPages: number; onPageChange: (page: number) => void }) {
   if (totalPages <= 1) return null
-
-  return (
-    <nav
-      className="flex items-center justify-center gap-2 pt-6 pb-2"
-      aria-label="Paginação"
-    >
-      <Button
-        variant="outline"
-        size="sm"
-        disabled={page <= 1}
-        onClick={() => onPageChange(page - 1)}
-        className="gap-1"
-      >
-        <ArrowLeft className="size-4" />
-        Anterior
-      </Button>
-
-      <span className="text-sm text-muted-foreground px-3 tabular-nums">
-        {page} / {totalPages}
-      </span>
-
-      <Button
-        variant="outline"
-        size="sm"
-        disabled={page >= totalPages}
-        onClick={() => onPageChange(page + 1)}
-        className="gap-1"
-      >
-        Seguinte
-        <ArrowRight className="size-4" />
-      </Button>
-    </nav>
-  )
+  return <nav className="flex items-center justify-center gap-3 py-7" aria-label="Paginação"><Button variant="outline" size="sm" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>Anterior</Button><span className="text-sm tabular-nums text-gray-600">{page} / {totalPages}</span><Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => onPageChange(page + 1)}>Seguinte</Button></nav>
 }
-
-/* ─────── Error state ─────── */
-
-function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-20 text-center">
-      <div className="rounded-full bg-red-50 p-4 mb-4">
-        <AlertCircle className="size-8 text-red-500" />
-      </div>
-      <h2 className="text-lg font-semibold text-gray-900 mb-2">
-        Erro ao carregar imóveis
-      </h2>
-      <p className="text-sm text-muted-foreground max-w-md mb-6">
-        {message}
-      </p>
-      <Button onClick={onRetry} className="gap-2">
-        <RefreshCw className="size-4" />
-        Tentar novamente
-      </Button>
-    </div>
-  )
-}
-
-/* ─────── Empty state ─────── */
 
 function EmptyState() {
-  return (
-    <div className="flex flex-col items-center justify-center py-20 text-center">
-      <div className="rounded-full bg-gray-50 p-4 mb-4">
-        <Search className="size-8 text-gray-400" />
-      </div>
-      <h2 className="text-lg font-semibold text-gray-900 mb-2">
-        Nenhum imóvel encontrado
-      </h2>
-      <p className="text-sm text-muted-foreground max-w-md">
-        Nenhum imóvel corresponde aos filtros selecionados. Tente ajustar ou
-        limpar os filtros para ver mais resultados.
-      </p>
-    </div>
-  )
+  const clearFilters = useFilterStore((state) => state.clearFilters)
+  return <div className="py-20 text-center"><div className="mx-auto mb-4 w-fit rounded-full bg-gray-50 p-4"><Search className="size-8 text-gray-400" /></div><h2 className="text-lg font-semibold text-gray-900">Nenhum imóvel encontrado</h2><p className="mx-auto mt-2 max-w-md text-sm text-gray-500">Experimente aumentar o preço máximo ou remover um dos filtros aplicados.</p><Button variant="outline" className="mt-5" onClick={clearFilters}>Limpar filtros</Button></div>
 }
-
-/* ─────── Main SearchPage ─────── */
 
 export default function SearchPage() {
   const [searchParams, setSearchParams] = useSearchParams()
-  const filterStore = useFilterStore()
-  const filterParams = filterStore.toParams()
-  const pageFromUrl = searchParams.get('page') ? Number(searchParams.get('page')) : 1
-  const [page, setPage] = useState(pageFromUrl)
+  const location = useLocation()
+  const store = useFilterStore()
+  const filterParams = store.toParams()
+  const paramsKey = JSON.stringify(filterParams)
+  const [page, setPage] = useState(1)
+  const [hydrated, setHydrated] = useState(false)
+  const previousFilters = useRef<string | null>(null)
 
-  /* ── Sync URL → store on mount / URL change ── */
   useEffect(() => {
-    const urlType = searchParams.get('type') ?? undefined
-    const urlTransaction = searchParams.get('transaction') ?? undefined
-    const urlMinPrice = searchParams.get('minPrice') ? Number(searchParams.get('minPrice')) : undefined
-    const urlMaxPrice = searchParams.get('maxPrice') ? Number(searchParams.get('maxPrice')) : undefined
-    const urlBedrooms = searchParams.get('minBedrooms') ? Number(searchParams.get('minBedrooms')) : undefined
-    const urlMinAreaM2 = searchParams.get('minAreaM2') ? Number(searchParams.get('minAreaM2')) : undefined
-    const urlLocality = searchParams.get('locality') ?? undefined
-    const urlAgencySlug = searchParams.get('agencySlug') ?? undefined
-    const urlSortBy = searchParams.get('sortBy') ?? undefined
-    const urlPage = searchParams.get('page') ? Number(searchParams.get('page')) : 1
-
-    // Only sync if the URL has any filter params (avoids overwriting defaults on first load)
-    if (searchParams.size > 0) {
-      if (urlType !== filterStore.type) filterStore.setType(urlType)
-      if (urlTransaction !== filterStore.transaction) filterStore.setTransaction(urlTransaction)
-      if (urlMinPrice !== filterStore.priceMin) filterStore.setPriceMin(urlMinPrice)
-      if (urlMaxPrice !== filterStore.priceMax) filterStore.setPriceMax(urlMaxPrice)
-      if (urlBedrooms !== filterStore.bedrooms) filterStore.setBedrooms(urlBedrooms)
-      if (urlMinAreaM2 !== filterStore.minAreaM2) filterStore.setMinAreaM2(urlMinAreaM2)
-      if (urlLocality !== filterStore.locality) filterStore.setLocality(urlLocality)
-      if (urlAgencySlug !== filterStore.agencySlug) filterStore.setAgencySlug(urlAgencySlug)
-      if (urlSortBy !== filterStore.sortBy) filterStore.setSortBy(urlSortBy)
-      setPage(urlPage)
-    }
-    // Run only once on mount — intentionally no deps so URL drives initial state
+    const numeric = (key: string) => searchParams.get(key) ? Number(searchParams.get(key)) : undefined
+    store.hydrate({
+      type: searchParams.get('type') ?? undefined,
+      transaction: searchParams.get('transaction') ?? undefined,
+      priceMin: numeric('minPrice'), priceMax: numeric('maxPrice'), bedrooms: numeric('minBedrooms'), minAreaM2: numeric('minAreaM2'),
+      locality: searchParams.get('locality') ?? undefined, agencySlug: searchParams.get('agencySlug') ?? undefined,
+      sortBy: searchParams.get('sortBy') ?? undefined,
+      sortDirection: searchParams.get('sortDirection') === 'Asc' ? 'Asc' : searchParams.get('sortDirection') === 'Desc' ? 'Desc' : undefined,
+    })
+    setPage(Math.max(1, Number(searchParams.get('page')) || 1))
+    setHydrated(true)
+    // The URL is the initial source of truth; later updates flow store → URL.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  /* ── Sync store → URL when filters change ── */
-  const paramsKey = JSON.stringify(filterParams)
-  const isFirstRender = useRef(true)
   useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false
-      return
-    }
-    const params = JSON.parse(paramsKey) as Record<string, string | number | boolean | null | undefined>
-    setSearchParams(
-      (prev) => {
-        const next = new URLSearchParams(prev)
-        for (const [key, val] of Object.entries(params)) {
-          if (val !== undefined && val !== null) {
-            next.set(key, String(val))
-          } else {
-            next.delete(key)
-          }
-        }
-        // Reset page when filters change
-        next.delete('page')
-        return next
-      },
-      { replace: true },
-    )
-  }, [paramsKey, setSearchParams])
+    if (!hydrated) return
+    if (previousFilters.current !== null && previousFilters.current !== paramsKey) setPage(1)
+    previousFilters.current = paramsKey
+  }, [hydrated, paramsKey])
 
-  /* ── Sync page → URL ── */
   useEffect(() => {
-    setSearchParams(
-      (prev) => {
-        if (page > 1) prev.set('page', String(page))
-        else prev.delete('page')
-        return prev
-      },
-      { replace: true },
-    )
-  }, [page, setSearchParams])
+    if (!hydrated) return
+    const next = new URLSearchParams()
+    Object.entries(filterParams).forEach(([key, value]) => { if (value !== undefined && value !== null) next.set(key, String(value)) })
+    if (page > 1) next.set('page', String(page))
+    if (next.toString() !== searchParams.toString()) setSearchParams(next, { replace: true })
+  }, [filterParams, hydrated, page, searchParams, setSearchParams])
 
-  const { data, isLoading, isError, error, refetch, isFetching } = useListings({
-    ...filterParams,
-    page,
-    pageSize: 12,
-  })
-
+  const { data, isLoading, isError, error, refetch, isFetching } = useListings({ ...filterParams, page, pageSize: 12 })
   const properties: ListingSummary[] = data?.items ?? []
-  const totalPages = data?.totalPages ?? 1
-  const totalCount = data?.totalCount ?? 0
-  const isInitialLoad = isLoading && !data
-  const isRefreshing = isFetching && !isLoading
+  const changePage = useCallback((next: number) => { setPage(next); window.scrollTo({ top: 0, behavior: 'smooth' }) }, [])
+  const returnState = { returnTo: `${location.pathname}${location.search}`, scrollY: window.scrollY }
 
-  const handleRetry = useCallback(() => {
-    refetch()
-  }, [refetch])
-
-  const handlePageChange = useCallback((newPage: number) => {
-    setPage(newPage)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }, [])
-
-  return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Imóveis em Pombal</h1>
-          {data && !isInitialLoad && (
-            <p className="text-sm text-muted-foreground mt-0.5">
-              {totalCount} {totalCount === 1 ? 'imóvel encontrado' : 'imóveis encontrados'}
-            </p>
-          )}
-        </div>
-        <FilterMobileTrigger />
+  return <div className="min-h-full bg-gray-50">
+    <SearchControls />
+    <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <div><h1 className="text-2xl font-bold text-gray-900">Imóveis em Pombal</h1>{data && <p className="mt-0.5 text-sm text-gray-500">{data.totalCount} {data.totalCount === 1 ? 'imóvel encontrado' : 'imóveis encontrados'}</p>}</div>
+        <div className="flex items-center gap-3"><SortControl /><Link to={`/map${location.search}`} state={returnState}><Button variant="outline" className="gap-2"><Map className="size-4" />Mapa</Button></Link></div>
       </div>
-
-      {/* ── Loading (first load) ── */}
-      {isInitialLoad && <ListingGridSkeleton />}
-
-      {/* ── Error ── */}
-      {isError && !isInitialLoad && (
-        <ErrorState
-          message={error instanceof Error ? error.message : 'Ocorreu um erro inesperado ao carregar a listagem.'}
-          onRetry={handleRetry}
-        />
-      )}
-
-      {/* ── Results / empty ── */}
-      {!isInitialLoad && !isError && (
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Filter sidebar — desktop */}
-          <FilterSidebar className="lg:col-span-1" />
-
-          {/* Listing grid + map */}
-          <div className="lg:col-span-3 space-y-4">
-            {/* Subtle refresh indicator */}
-            {isRefreshing && (
-              <div className="flex items-center gap-2 text-xs text-muted-foreground pb-1">
-                <RefreshCw className="size-3 animate-spin" />
-                <span>A atualizar...</span>
-              </div>
-            )}
-
-            {properties.length === 0 ? (
-              <EmptyState />
-            ) : (
-              <>
-                {/* Listing grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
-                  {properties.map((p) => (
-                    <Link
-                      key={p.id}
-                      to={`/listings/${p.id}`}
-                      className="block transition-opacity"
-                    >
-                      <ListingCard property={p} />
-                    </Link>
-                  ))}
-                </div>
-
-                {/* Pagination */}
-                <Pagination
-                  page={page}
-                  totalPages={totalPages}
-                  onPageChange={handlePageChange}
-                />
-
-                {/* Map */}
-                <div className="h-[400px] rounded-lg overflow-hidden border border-gray-200 lg:h-[500px] lg:sticky lg:top-8">
-                  <MapContainer
-                    center={[39.915, -8.628]}
-                    zoom={13}
-                    className="h-full w-full"
-                    scrollWheelZoom={false}
-                  >
-                    <TileLayer
-                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    />
-                  </MapContainer>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  )
+      {isFetching && !isLoading && <p className="mb-3 flex items-center gap-2 text-xs text-gray-500"><RefreshCw className="size-3 animate-spin" />A atualizar resultados...</p>}
+      {isLoading && <div className="space-y-4">{Array.from({ length: 5 }).map((_, index) => <ListingSkeleton key={index} />)}</div>}
+      {isError && !isLoading && <div className="py-20 text-center"><AlertCircle className="mx-auto mb-4 size-9 text-red-500" /><h2 className="font-semibold">Erro ao carregar imóveis</h2><p className="mt-2 text-sm text-gray-500">{error instanceof Error ? error.message : 'Ocorreu um erro inesperado.'}</p><Button className="mt-5" onClick={() => refetch()}>Tentar novamente</Button></div>}
+      {!isLoading && !isError && (properties.length ? <><div className="space-y-4">{properties.map((property) => <Link key={property.id} to={`/listings/${property.id}`} state={returnState} className="block"><ListingCard property={property} /></Link>)}</div><Pagination page={page} totalPages={data?.totalPages ?? 1} onPageChange={changePage} /></> : <EmptyState />)}
+    </main>
+  </div>
 }

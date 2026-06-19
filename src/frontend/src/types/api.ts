@@ -17,6 +17,7 @@ export interface ListingSummary {
   city?: string
   parish?: string
   district?: string
+  status?: string
   primaryImage?: {
     url: string
     thumbnailUrl?: string
@@ -158,6 +159,7 @@ export interface MapPropertiesResponse {
       status: string
       city?: string
       bedrooms?: number
+      locality?: string
       thumbnail?: string
     }
   }>
@@ -204,6 +206,7 @@ export interface AdminScraperSource {
   targetDescription: string | null
   enabled: boolean
   interval: string
+  manualRunRequestedAt: string | null
   updatedAt: string
   latestRun: ScraperRunSummary | null
 }

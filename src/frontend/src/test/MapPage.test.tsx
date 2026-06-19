@@ -63,7 +63,7 @@ describe('MapPage', () => {
   it('shows loading state initially', () => {
     render(<MapPage />, { wrapper: createWrapper() })
 
-    expect(screen.getByText('Mapa')).toBeInTheDocument()
+    expect(screen.getByText('Mapa de imóveis')).toBeInTheDocument()
     expect(screen.getByText('A carregar imóveis...')).toBeInTheDocument()
   })
 
@@ -81,7 +81,7 @@ describe('MapPage', () => {
 
     // Page title and description are always rendered
     expect(
-      screen.getByText('Explore os imóveis no mapa interativo.'),
+      screen.getByText('Os imóveis apresentados correspondem aos filtros da sua pesquisa.'),
     ).toBeInTheDocument()
   })
 

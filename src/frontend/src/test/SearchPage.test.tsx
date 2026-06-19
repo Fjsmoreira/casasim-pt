@@ -96,16 +96,17 @@ describe('SearchPage', () => {
     })
   })
 
-  it('renders FilterSidebar alongside listings', async () => {
+  it('renders the location-first search controls alongside listings', async () => {
     render(<SearchPage />, { wrapper: createWrapper() })
 
     await waitFor(() => {
       expect(screen.getByText('Moradia T3 em Pombal')).toBeInTheDocument()
     })
 
-    // Filter sections should be visible (desktop sidebar — use getAllByText since mobile sheet duplicates)
-    expect(screen.getAllByText('Tipo de negócio').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText('Tipo de imóvel').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByLabelText('Localidade')).toBeInTheDocument()
+    expect(screen.getByLabelText('Tipo de negócio')).toBeInTheDocument()
+    expect(screen.getByLabelText('Tipo de imóvel')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /mais filtros/i })).toBeInTheDocument()
   })
 
   it('does not show pagination when there are fewer results than one page', async () => {

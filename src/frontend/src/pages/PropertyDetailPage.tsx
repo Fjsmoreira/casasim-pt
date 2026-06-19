@@ -1,4 +1,4 @@
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useLocation } from 'react-router-dom'
 import { useListing } from '@/hooks/useListing'
 import { ArrowLeft, Loader2, Home, AlertTriangle, Calendar } from 'lucide-react'
 
@@ -12,7 +12,10 @@ import AgencyCard from '@/components/AgencyCard'
 
 export default function PropertyDetailPage() {
   const { id } = useParams()
+  const location = useLocation()
   const { data: listing, isLoading, isError, error } = useListing(id!)
+  const returnState = location.state as { returnTo?: string; scrollY?: number } | null
+  const returnTo = returnState?.returnTo ?? '/search'
 
   // ── 404 state ──────────────────────────────────────────────
   if (isError && error && 'response' in error && (error as { response: { status: number } }).response?.status === 404) {
@@ -68,7 +71,11 @@ export default function PropertyDetailPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Back link */}
       <Link
-        to="/search"
+        to={returnTo}
+        onClick={() => {
+          const scrollY = returnState?.scrollY
+          if (scrollY !== undefined) window.setTimeout(() => window.scrollTo(0, scrollY), 0)
+        }}
         className="inline-flex items-center gap-1.5 text-sm text-emerald-600 hover:text-emerald-700 mb-6 transition-colors"
       >
         <ArrowLeft className="h-4 w-4" />

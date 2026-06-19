@@ -119,7 +119,8 @@ public sealed class ListingsController : ControllerBase
         [FromQuery] ListingPriceType? priceType,
         [FromQuery] decimal? minPrice,
         [FromQuery] decimal? maxPrice,
-        [FromQuery] int? minBedrooms)
+        [FromQuery] int? minBedrooms,
+        [FromQuery] string? locality)
     {
         // --- Require bounding box ---
         if (swLat is null || swLng is null || neLat is null || neLng is null)
@@ -139,7 +140,7 @@ public sealed class ListingsController : ControllerBase
         var bbox = BoundingBoxPolygon(swLat.Value, swLng.Value, neLat.Value, neLng.Value);
 
         // --- Query ---
-        var listings = await BuildQuery(bbox, city, type, priceType, minPrice, maxPrice, minBedrooms)
+        var listings = await BuildQuery(bbox, city, type, priceType, minPrice, maxPrice, minBedrooms, locality)
             .OrderByDescending(l => l.UpdatedAt)
             .Select(l => new GeoJsonRecord
             {
@@ -179,7 +180,8 @@ public sealed class ListingsController : ControllerBase
         ListingPriceType? priceType,
         decimal? minPrice,
         decimal? maxPrice,
-        int? minBedrooms)
+        int? minBedrooms,
+        string? locality = null)
     {
         var query = _db.Listings
             .AsNoTracking()
@@ -199,6 +201,19 @@ public sealed class ListingsController : ControllerBase
             query = query.Where(l => l.Price <= maxPrice.Value);
         if (minBedrooms.HasValue)
             query = query.Where(l => l.Bedrooms >= minBedrooms.Value);
+        if (!string.IsNullOrWhiteSpace(locality))
+        {
+            var normalizedLocality = locality.Trim();
+            // Keep map results aligned with list results while older scraped records
+            // still have locality embedded in their title instead of Location.Parish.
+            query = query.Where(l =>
+                (l.Location!.Parish != null && EF.Functions.ILike(l.Location.Parish, normalizedLocality)) ||
+                EF.Functions.ILike(l.Title, $"% em {normalizedLocality}, Pombal%") ||
+                EF.Functions.ILike(l.Title, $"% no {normalizedLocality}, Pombal%") ||
+                EF.Functions.ILike(l.Title, $"% na {normalizedLocality}, Pombal%") ||
+                EF.Functions.ILike(l.Title, $"%| {normalizedLocality} | Pombal%") ||
+                EF.Functions.ILike(l.Title, $"%|| {normalizedLocality}%"));
+        }
 
         return query;
     }
