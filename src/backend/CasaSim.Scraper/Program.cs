@@ -46,6 +46,23 @@ var host = Host.CreateDefaultBuilder(args)
         services.AddScoped<IPropertyScraper, RemaxScraper>();
         services.AddScoped<IPropertyScraper, Century21Scraper>();
         services.AddScoped<IPropertyScraper, EraScraper>();
+
+        // CRM360 platform scrapers
+        services.AddScoped<IPropertyScraper, ValorfinImoveisScraper>();
+        services.AddScoped<IPropertyScraper, ArgilipeScraper>();
+
+        // eGO platform scrapers
+        services.AddScoped<IPropertyScraper, ImoPombalScraper>();
+        services.AddScoped<IPropertyScraper, LionscastlesScraper>();
+        services.AddScoped<IPropertyScraper, HabifitScraper>();
+        services.AddScoped<IPropertyScraper, CosyImobiliariaScraper>();
+
+        // Individual site scrapers
+        services.AddScoped<IPropertyScraper, ModernoImoveisScraper>();
+        services.AddScoped<IPropertyScraper, NevesterlouwScraper>();
+        services.AddScoped<IPropertyScraper, VeigasScraper>();
+        services.AddScoped<IPropertyScraper, ZomeScraper>();
+
         services.AddScoped<RemaxListingParser>();
         services.AddScoped<Century21ListingParser>();
         services.AddScoped<EraListingParser>();

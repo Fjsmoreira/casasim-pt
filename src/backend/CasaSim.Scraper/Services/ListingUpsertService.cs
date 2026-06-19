@@ -23,6 +23,16 @@ public sealed class ListingUpsertService
         ["Remax"] = "remax-pombal",
         ["Century21"] = "century21-pombal",
         ["ERA"] = "era-pombal",
+        ["Valorfin Imóveis"] = "valorfin-imoveis",
+        ["Argilipe"] = "argilipe",
+        ["ImoPombal"] = "imopombal",
+        ["LionsCastles"] = "lionscastles",
+        ["Habifit"] = "habifit",
+        ["Cosy Imobiliária"] = "cosy-imobiliaria",
+        ["Moderno Imóveis"] = "moderno-imoveis",
+        ["Neves & Terlouw"] = "neves-terlouw",
+        ["Veigas"] = "veigas",
+        ["Zome"] = "zome",
     };
 
     private readonly AppDbContext _db;
