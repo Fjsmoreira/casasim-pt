@@ -18,7 +18,7 @@ namespace CasaSim.Api.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.1")
+                .HasAnnotation("ProductVersion", "10.0.9")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "postgis");
@@ -79,13 +79,13 @@ namespace CasaSim.Api.Migrations
                         .HasColumnName("website_url");
 
                     b.HasKey("Id")
-                        .HasName("pk_agency");
+                        .HasName("pk_agencies");
 
                     b.HasIndex("Slug")
                         .IsUnique()
-                        .HasDatabaseName("ix_agency_slug");
+                        .HasDatabaseName("ix_agencies_slug");
 
-                    b.ToTable("agency", (string)null);
+                    b.ToTable("agencies", (string)null);
 
                     b.HasData(
                         new
@@ -252,28 +252,28 @@ namespace CasaSim.Api.Migrations
                         .HasColumnName("year_built");
 
                     b.HasKey("Id")
-                        .HasName("pk_listing");
+                        .HasName("pk_listings");
 
                     b.HasIndex("City")
-                        .HasDatabaseName("ix_listing_city");
+                        .HasDatabaseName("ix_listings_city");
 
                     b.HasIndex("LocationId")
-                        .HasDatabaseName("ix_listing_location_id");
+                        .HasDatabaseName("ix_listings_location_id");
 
                     b.HasIndex("Price")
-                        .HasDatabaseName("ix_listing_price");
+                        .HasDatabaseName("ix_listings_price");
 
                     b.HasIndex("PropertyType")
-                        .HasDatabaseName("ix_listing_property_type");
+                        .HasDatabaseName("ix_listings_property_type");
 
                     b.HasIndex("Status")
-                        .HasDatabaseName("ix_listing_status");
+                        .HasDatabaseName("ix_listings_status");
 
                     b.HasIndex("AgencyId", "ExternalId")
                         .IsUnique()
-                        .HasDatabaseName("ix_listing_agency_id_external_id");
+                        .HasDatabaseName("ix_listings_agency_id_external_id");
 
-                    b.ToTable("listing", (string)null);
+                    b.ToTable("listings", (string)null);
                 });
 
             modelBuilder.Entity("CasaSim.Core.Data.Entities.ListingFeature", b =>
@@ -326,12 +326,12 @@ namespace CasaSim.Api.Migrations
                         .HasColumnName("value");
 
                     b.HasKey("Id")
-                        .HasName("pk_listing_feature");
+                        .HasName("pk_listing_features");
 
                     b.HasIndex("ListingId")
-                        .HasDatabaseName("ix_listing_feature_listing_id");
+                        .HasDatabaseName("ix_listing_features_listing_id");
 
-                    b.ToTable("listing_feature", (string)null);
+                    b.ToTable("listing_features", (string)null);
                 });
 
             modelBuilder.Entity("CasaSim.Core.Data.Entities.ListingImage", b =>
@@ -386,12 +386,12 @@ namespace CasaSim.Api.Migrations
                         .HasColumnName("url");
 
                     b.HasKey("Id")
-                        .HasName("pk_listing_image");
+                        .HasName("pk_listing_images");
 
                     b.HasIndex("ListingId")
-                        .HasDatabaseName("ix_listing_image_listing_id");
+                        .HasDatabaseName("ix_listing_images_listing_id");
 
-                    b.ToTable("listing_image", (string)null);
+                    b.ToTable("listing_images", (string)null);
                 });
 
             modelBuilder.Entity("CasaSim.Core.Data.Entities.Location", b =>
@@ -479,86 +479,17 @@ namespace CasaSim.Api.Migrations
                         .HasColumnName("updated_at");
 
                     b.HasKey("Id")
-                        .HasName("pk_location");
+                        .HasName("pk_locations");
 
                     b.HasIndex("Coordinate")
-                        .HasDatabaseName("ix_location_coordinate");
+                        .HasDatabaseName("ix_locations_coordinate");
 
                     NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Coordinate"), "GIST");
 
                     b.HasIndex("Municipality")
-                        .HasDatabaseName("ix_location_municipality");
+                        .HasDatabaseName("ix_locations_municipality");
 
-                    b.ToTable("location", (string)null);
-                });
-
-            modelBuilder.Entity("CasaSim.Core.Data.Entities.ScrapeListingChange", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<string>("Action")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("action");
-
-                    b.Property<string>("AgencySlug")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)")
-                        .HasColumnName("agency_slug");
-
-                    b.Property<string>("ChangeSummaryJson")
-                        .HasColumnType("jsonb")
-                        .HasColumnName("change_summary_json");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<string>("ExternalId")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)")
-                        .HasColumnName("external_id");
-
-                    b.Property<Guid?>("ListingId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("listing_id");
-
-                    b.Property<Guid>("ScrapeLogId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("scrape_log_id");
-
-                    b.Property<string>("SourceUrl")
-                        .HasMaxLength(2048)
-                        .HasColumnType("character varying(2048)")
-                        .HasColumnName("source_url");
-
-                    b.Property<string>("Title")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("title");
-
-                    b.HasKey("Id")
-                        .HasName("pk_scrape_listing_change");
-
-                    b.HasIndex("Action")
-                        .HasDatabaseName("ix_scrape_listing_change_action");
-
-                    b.HasIndex("CreatedAt")
-                        .HasDatabaseName("ix_scrape_listing_change_created_at");
-
-                    b.HasIndex("ListingId")
-                        .HasDatabaseName("ix_scrape_listing_change_listing_id");
-
-                    b.HasIndex("ScrapeLogId")
-                        .HasDatabaseName("ix_scrape_listing_change_scrape_log_id");
-
-                    b.ToTable("scrape_listing_change", (string)null);
+                    b.ToTable("locations", (string)null);
                 });
 
             modelBuilder.Entity("CasaSim.Core.Data.Entities.ScrapeLog", b =>
@@ -639,263 +570,18 @@ namespace CasaSim.Api.Migrations
                         .HasColumnName("updated_at");
 
                     b.HasKey("Id")
-                        .HasName("pk_scrape_log");
+                        .HasName("pk_scrape_logs");
 
                     b.HasIndex("AgencyId")
-                        .HasDatabaseName("ix_scrape_log_agency_id");
+                        .HasDatabaseName("ix_scrape_logs_agency_id");
 
                     b.HasIndex("StartedAt")
-                        .HasDatabaseName("ix_scrape_log_started_at");
+                        .HasDatabaseName("ix_scrape_logs_started_at");
 
                     b.HasIndex("Status")
-                        .HasDatabaseName("ix_scrape_log_status");
+                        .HasDatabaseName("ix_scrape_logs_status");
 
-                    b.ToTable("scrape_log", (string)null);
-                });
-
-            modelBuilder.Entity("CasaSim.Core.Data.Entities.ScraperSource", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<Guid?>("AgencyId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("agency_id");
-
-                    b.Property<string>("AgencySlug")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)")
-                        .HasColumnName("agency_slug");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<bool>("Enabled")
-                        .HasColumnType("boolean")
-                        .HasColumnName("enabled");
-
-                    b.Property<TimeSpan>("Interval")
-                        .HasColumnType("interval")
-                        .HasColumnName("interval");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)")
-                        .HasColumnName("name");
-
-                    b.Property<string>("ScraperKey")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("scraper_key");
-
-                    b.Property<string>("SourceUrl")
-                        .HasMaxLength(2048)
-                        .HasColumnType("character varying(2048)")
-                        .HasColumnName("source_url");
-
-                    b.Property<string>("TargetDescription")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)")
-                        .HasColumnName("target_description");
-
-                    b.Property<DateTimeOffset>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.HasKey("Id")
-                        .HasName("pk_scraper_source");
-
-                    b.HasIndex("AgencyId")
-                        .HasDatabaseName("ix_scraper_source_agency_id");
-
-                    b.HasIndex("Enabled")
-                        .HasDatabaseName("ix_scraper_source_enabled");
-
-                    b.HasIndex("ScraperKey")
-                        .IsUnique()
-                        .HasDatabaseName("ix_scraper_source_scraper_key");
-
-                    b.ToTable("scraper_source", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            Id = new Guid("b1000000-0000-0000-0000-000000000001"),
-                            AgencyId = new Guid("a1000000-0000-0000-0000-000000000001"),
-                            AgencySlug = "remax-pombal",
-                            CreatedAt = new DateTimeOffset(new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
-                            Enabled = true,
-                            Interval = new TimeSpan(0, 0, 1, 0, 0),
-                            Name = "Remax Pombal",
-                            ScraperKey = "Remax",
-                            SourceUrl = "https://www.remax.pt",
-                            TargetDescription = "Remax listings for Pombal",
-                            UpdatedAt = new DateTimeOffset(new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0))
-                        },
-                        new
-                        {
-                            Id = new Guid("b1000000-0000-0000-0000-000000000002"),
-                            AgencyId = new Guid("a1000000-0000-0000-0000-000000000002"),
-                            AgencySlug = "century21-pombal",
-                            CreatedAt = new DateTimeOffset(new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
-                            Enabled = true,
-                            Interval = new TimeSpan(0, 0, 1, 0, 0),
-                            Name = "Century21 Pombal",
-                            ScraperKey = "Century21",
-                            SourceUrl = "https://www.century21.pt",
-                            TargetDescription = "Century21 sale and rent listings for Pombal",
-                            UpdatedAt = new DateTimeOffset(new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0))
-                        },
-                        new
-                        {
-                            Id = new Guid("b1000000-0000-0000-0000-000000000003"),
-                            AgencyId = new Guid("a1000000-0000-0000-0000-000000000003"),
-                            AgencySlug = "era-pombal",
-                            CreatedAt = new DateTimeOffset(new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
-                            Enabled = true,
-                            Interval = new TimeSpan(0, 0, 1, 0, 0),
-                            Name = "ERA Pombal",
-                            ScraperKey = "ERA",
-                            SourceUrl = "https://www.era.pt/imoveis/agencia/pombal",
-                            TargetDescription = "ERA agency listings for Pombal",
-                            UpdatedAt = new DateTimeOffset(new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0))
-                        },
-                        new
-                        {
-                            Id = new Guid("b1000000-0000-0000-0000-000000000004"),
-                            AgencySlug = "valorfin-imoveis",
-                            CreatedAt = new DateTimeOffset(new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
-                            Enabled = true,
-                            Interval = new TimeSpan(0, 6, 0, 0, 0),
-                            Name = "Valorfin Imóveis",
-                            ScraperKey = "Valorfin Imóveis",
-                            SourceUrl = "https://valorfinimoveis.pt",
-                            TargetDescription = "CRM360 platform — Valorfin Imóveis",
-                            UpdatedAt = new DateTimeOffset(new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0))
-                        },
-                        new
-                        {
-                            Id = new Guid("b1000000-0000-0000-0000-000000000005"),
-                            AgencySlug = "argilipe",
-                            CreatedAt = new DateTimeOffset(new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
-                            Enabled = true,
-                            Interval = new TimeSpan(0, 6, 0, 0, 0),
-                            Name = "Argilipe",
-                            ScraperKey = "Argilipe",
-                            SourceUrl = "https://www.argilipe.pt",
-                            TargetDescription = "CRM360 platform — Argilipe Imobiliária",
-                            UpdatedAt = new DateTimeOffset(new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0))
-                        },
-                        new
-                        {
-                            Id = new Guid("b1000000-0000-0000-0000-000000000006"),
-                            AgencySlug = "imopombal",
-                            CreatedAt = new DateTimeOffset(new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
-                            Enabled = true,
-                            Interval = new TimeSpan(0, 6, 0, 0, 0),
-                            Name = "ImoPombal",
-                            ScraperKey = "ImoPombal",
-                            SourceUrl = "https://www.imopombal.pt",
-                            TargetDescription = "eGO platform — ImoPombal",
-                            UpdatedAt = new DateTimeOffset(new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0))
-                        },
-                        new
-                        {
-                            Id = new Guid("b1000000-0000-0000-0000-000000000007"),
-                            AgencySlug = "lionscastles",
-                            CreatedAt = new DateTimeOffset(new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
-                            Enabled = true,
-                            Interval = new TimeSpan(0, 6, 0, 0, 0),
-                            Name = "LionsCastles",
-                            ScraperKey = "LionsCastles",
-                            SourceUrl = "https://www.lionscastles.pt",
-                            TargetDescription = "eGO platform — LionsCastles",
-                            UpdatedAt = new DateTimeOffset(new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0))
-                        },
-                        new
-                        {
-                            Id = new Guid("b1000000-0000-0000-0000-000000000008"),
-                            AgencySlug = "habifit",
-                            CreatedAt = new DateTimeOffset(new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
-                            Enabled = true,
-                            Interval = new TimeSpan(0, 6, 0, 0, 0),
-                            Name = "Habifit",
-                            ScraperKey = "Habifit",
-                            SourceUrl = "https://www.habifit.pt",
-                            TargetDescription = "eGO platform — Habifit",
-                            UpdatedAt = new DateTimeOffset(new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0))
-                        },
-                        new
-                        {
-                            Id = new Guid("b1000000-0000-0000-0000-000000000009"),
-                            AgencySlug = "cosy-imobiliaria",
-                            CreatedAt = new DateTimeOffset(new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
-                            Enabled = true,
-                            Interval = new TimeSpan(0, 6, 0, 0, 0),
-                            Name = "Cosy Imobiliária",
-                            ScraperKey = "Cosy Imobiliária",
-                            SourceUrl = "https://www.cosyimobiliaria.pt",
-                            TargetDescription = "eGO platform — Cosy Imobiliária",
-                            UpdatedAt = new DateTimeOffset(new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0))
-                        },
-                        new
-                        {
-                            Id = new Guid("b1000000-0000-0000-0000-000000000010"),
-                            AgencySlug = "moderno-imoveis",
-                            CreatedAt = new DateTimeOffset(new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
-                            Enabled = true,
-                            Interval = new TimeSpan(0, 6, 0, 0, 0),
-                            Name = "Moderno Imóveis",
-                            ScraperKey = "Moderno Imóveis",
-                            SourceUrl = "https://www.modernoimoveis.pt",
-                            TargetDescription = "WordPress — Moderno Imóveis",
-                            UpdatedAt = new DateTimeOffset(new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0))
-                        },
-                        new
-                        {
-                            Id = new Guid("b1000000-0000-0000-0000-000000000011"),
-                            AgencySlug = "neves-terlouw",
-                            CreatedAt = new DateTimeOffset(new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
-                            Enabled = true,
-                            Interval = new TimeSpan(0, 6, 0, 0, 0),
-                            Name = "Neves & Terlouw",
-                            ScraperKey = "Neves & Terlouw",
-                            SourceUrl = "https://www.nevesterlouw.com",
-                            TargetDescription = "Custom site — Neves & Terlouw",
-                            UpdatedAt = new DateTimeOffset(new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0))
-                        },
-                        new
-                        {
-                            Id = new Guid("b1000000-0000-0000-0000-000000000012"),
-                            AgencySlug = "veigas",
-                            CreatedAt = new DateTimeOffset(new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
-                            Enabled = true,
-                            Interval = new TimeSpan(0, 6, 0, 0, 0),
-                            Name = "Veigas",
-                            ScraperKey = "Veigas",
-                            SourceUrl = "https://www.veigas.eu",
-                            TargetDescription = "Next.js — Veigas Imobiliária",
-                            UpdatedAt = new DateTimeOffset(new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0))
-                        },
-                        new
-                        {
-                            Id = new Guid("b1000000-0000-0000-0000-000000000013"),
-                            AgencySlug = "zome",
-                            CreatedAt = new DateTimeOffset(new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
-                            Enabled = true,
-                            Interval = new TimeSpan(0, 6, 0, 0, 0),
-                            Name = "Zome",
-                            ScraperKey = "Zome",
-                            SourceUrl = "https://www.zome.pt/pt/leiria-h40157/imoveis",
-                            TargetDescription = "Nuxt/Vue — Zome Leiria district",
-                            UpdatedAt = new DateTimeOffset(new DateTime(2026, 6, 11, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0))
-                        });
+                    b.ToTable("scrape_logs", (string)null);
                 });
 
             modelBuilder.Entity("CasaSim.Core.Data.Entities.Listing", b =>
@@ -905,13 +591,13 @@ namespace CasaSim.Api.Migrations
                         .HasForeignKey("AgencyId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
-                        .HasConstraintName("fk_listing_agency_agency_id");
+                        .HasConstraintName("fk_listings_agencies_agency_id");
 
                     b.HasOne("CasaSim.Core.Data.Entities.Location", "Location")
                         .WithMany("Listings")
                         .HasForeignKey("LocationId")
                         .OnDelete(DeleteBehavior.SetNull)
-                        .HasConstraintName("fk_listing_locations_location_id");
+                        .HasConstraintName("fk_listings_locations_location_id");
 
                     b.Navigation("Agency");
 
@@ -925,7 +611,7 @@ namespace CasaSim.Api.Migrations
                         .HasForeignKey("ListingId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("fk_listing_feature_listing_listing_id");
+                        .HasConstraintName("fk_listing_features_listings_listing_id");
 
                     b.Navigation("Listing");
                 });
@@ -937,29 +623,9 @@ namespace CasaSim.Api.Migrations
                         .HasForeignKey("ListingId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("fk_listing_image_listing_listing_id");
+                        .HasConstraintName("fk_listing_images_listings_listing_id");
 
                     b.Navigation("Listing");
-                });
-
-            modelBuilder.Entity("CasaSim.Core.Data.Entities.ScrapeListingChange", b =>
-                {
-                    b.HasOne("CasaSim.Core.Data.Entities.Listing", "Listing")
-                        .WithMany()
-                        .HasForeignKey("ListingId")
-                        .OnDelete(DeleteBehavior.SetNull)
-                        .HasConstraintName("fk_scrape_listing_change_listing_listing_id");
-
-                    b.HasOne("CasaSim.Core.Data.Entities.ScrapeLog", "ScrapeLog")
-                        .WithMany("ListingChanges")
-                        .HasForeignKey("ScrapeLogId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_scrape_listing_change_scrape_log_scrape_log_id");
-
-                    b.Navigation("Listing");
-
-                    b.Navigation("ScrapeLog");
                 });
 
             modelBuilder.Entity("CasaSim.Core.Data.Entities.ScrapeLog", b =>
@@ -968,18 +634,7 @@ namespace CasaSim.Api.Migrations
                         .WithMany("ScrapeLogs")
                         .HasForeignKey("AgencyId")
                         .OnDelete(DeleteBehavior.SetNull)
-                        .HasConstraintName("fk_scrape_log_agency_agency_id");
-
-                    b.Navigation("Agency");
-                });
-
-            modelBuilder.Entity("CasaSim.Core.Data.Entities.ScraperSource", b =>
-                {
-                    b.HasOne("CasaSim.Core.Data.Entities.Agency", "Agency")
-                        .WithMany()
-                        .HasForeignKey("AgencyId")
-                        .OnDelete(DeleteBehavior.SetNull)
-                        .HasConstraintName("fk_scraper_source_agency_agency_id");
+                        .HasConstraintName("fk_scrape_logs_agencies_agency_id");
 
                     b.Navigation("Agency");
                 });
@@ -1001,11 +656,6 @@ namespace CasaSim.Api.Migrations
             modelBuilder.Entity("CasaSim.Core.Data.Entities.Location", b =>
                 {
                     b.Navigation("Listings");
-                });
-
-            modelBuilder.Entity("CasaSim.Core.Data.Entities.ScrapeLog", b =>
-                {
-                    b.Navigation("ListingChanges");
                 });
 #pragma warning restore 612, 618
         }
