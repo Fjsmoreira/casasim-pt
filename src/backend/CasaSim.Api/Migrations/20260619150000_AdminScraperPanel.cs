@@ -112,6 +112,7 @@ public partial class AdminScraperPanel : Migration
         migrationBuilder.InsertData(
             table: "scraper_source",
             columns: new[] { "id", "agency_id", "name", "scraper_key", "agency_slug", "source_url", "target_description", "enabled", "interval", "created_at", "updated_at" },
+            columnTypes: new[] { "uuid", "uuid", "character varying(255)", "character varying(100)", "character varying(255)", "character varying(2048)", "character varying(1000)", "boolean", "interval", "timestamp with time zone", "timestamp with time zone" },
             values: new object[,]
             {
                 { Guid.Parse("b1000000-0000-0000-0000-000000000001"), Guid.Parse("a1000000-0000-0000-0000-000000000001"), "Remax Pombal", "Remax", "remax-pombal", "https://www.remax.pt", "Remax listings for Pombal", true, TimeSpan.FromMinutes(1), now, now },
