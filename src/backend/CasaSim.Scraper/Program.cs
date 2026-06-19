@@ -58,34 +58,52 @@ var host = Host.CreateDefaultBuilder(args)
         var otelResourceBuilder = ResourceBuilder.CreateDefault()
             .AddService("casasim-scraper", serviceVersion: "1.0.0");
 
+        var otlpCfg = ctx.Configuration.GetSection("OpenTelemetry:Otlp");
+        var otlpEndpoint = otlpCfg["Endpoint"];
+        var hasOtlpEndpoint =
+            !string.IsNullOrWhiteSpace(otlpEndpoint) ||
+            !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT"));
+
         services.AddOpenTelemetry()
-            .WithTracing(tracing => tracing
-                .SetResourceBuilder(otelResourceBuilder)
-                .AddSource("CasaSim.Scraper")
-                .AddHttpClientInstrumentation()
-                .AddOtlpExporter(options =>
+            .WithTracing(tracing =>
+            {
+                tracing
+                    .SetResourceBuilder(otelResourceBuilder)
+                    .AddSource("CasaSim.Scraper")
+                    .AddHttpClientInstrumentation();
+
+                if (hasOtlpEndpoint)
                 {
-                    // OTLP is configured via standard env vars / config:
-                    //   OTEL_EXPORTER_OTLP_ENDPOINT, OTEL_EXPORTER_OTLP_HEADERS, etc.
-                    // Optional: override endpoint from config section.
-                    var otlpCfg = ctx.Configuration.GetSection("OpenTelemetry:Otlp");
-                    if (otlpCfg.Exists())
+                    tracing.AddOtlpExporter(options =>
                     {
-                        otlpCfg.Bind(options);
-                    }
-                }))
-            .WithMetrics(metrics => metrics
-                .SetResourceBuilder(otelResourceBuilder)
-                .AddMeter("CasaSim.Scraper")
-                .AddHttpClientInstrumentation()
-                .AddOtlpExporter(options =>
+                        // OTLP is configured via standard env vars / config:
+                        //   OTEL_EXPORTER_OTLP_ENDPOINT, OTEL_EXPORTER_OTLP_HEADERS, etc.
+                        // Optional: override endpoint from config section.
+                        if (!string.IsNullOrWhiteSpace(otlpEndpoint))
+                        {
+                            otlpCfg.Bind(options);
+                        }
+                    });
+                }
+            })
+            .WithMetrics(metrics =>
+            {
+                metrics
+                    .SetResourceBuilder(otelResourceBuilder)
+                    .AddMeter("CasaSim.Scraper")
+                    .AddHttpClientInstrumentation();
+
+                if (hasOtlpEndpoint)
                 {
-                    var otlpCfg = ctx.Configuration.GetSection("OpenTelemetry:Otlp");
-                    if (otlpCfg.Exists())
+                    metrics.AddOtlpExporter(options =>
                     {
-                        otlpCfg.Bind(options);
-                    }
-                }));
+                        if (!string.IsNullOrWhiteSpace(otlpEndpoint))
+                        {
+                            otlpCfg.Bind(options);
+                        }
+                    });
+                }
+            });
     })
     .UseSerilog((ctx, lc) => lc
         .ReadFrom.Configuration(ctx.Configuration)
