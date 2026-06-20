@@ -129,7 +129,7 @@ internal static class EgoSitemapScraper
                 // More reliable than XDocument namespace handling
                 // across different .NET runtimes and XML configs.
                 var matches = Regex.Matches(xml,
-                    @"<loc>(https?://[^<]*/imovel/([^/]+)/(\d+))</loc>",
+                    @"<loc>\s*(https?://[^<]*/imovel/([^/]+)/(\d+))\s*</loc>",
                     RegexOptions.IgnoreCase);
                 foreach (Match m in matches)
                 {
