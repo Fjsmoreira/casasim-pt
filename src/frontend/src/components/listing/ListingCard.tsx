@@ -1,5 +1,5 @@
-import { Home, MapPin, Bed, CalendarDays, Building2 } from 'lucide-react'
-import { cn, formatPricePerM2 } from '@/lib/utils'
+import { Bath, BedDouble, CalendarDays, Heart, Home, MapPin, Maximize, Building2 } from 'lucide-react'
+import { formatPricePerM2 } from '@/lib/utils'
 import type { ListingSummary } from '@/types/api'
 
 const TYPE_LABELS: Record<string, string> = {
@@ -49,78 +49,57 @@ export default function ListingCard({ property }: ListingCardProps) {
   const status = property.status && property.status.toLowerCase() !== 'active' ? property.status : null
 
   return (
-    <article className="group flex overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+    <article className="group overflow-hidden rounded border border-slate-200 bg-white shadow-sm transition-all duration-200 hover:border-slate-300 hover:shadow-md">
       {/* Image */}
-      <div className="relative h-40 w-36 shrink-0 overflow-hidden bg-gray-100 sm:h-52 sm:w-72">
+      <div className="relative h-56 overflow-hidden bg-slate-100 sm:h-72">
         {imageUrl ? (
           <img
             src={imageUrl}
             alt={title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-emerald-100 to-emerald-200">
-            <Home className="w-12 h-12 text-emerald-400" />
+          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-sky-100 to-sky-200">
+            <Home className="size-12 text-sky-400" />
           </div>
         )}
+        <span className="absolute left-3 top-3 rounded bg-[#f7a21b] px-2 py-1 text-[11px] font-bold uppercase tracking-wide text-white">{transactionLabel}</span>
+        {status && <span className="absolute left-3 top-11 rounded bg-slate-800/85 px-2 py-1 text-[11px] font-semibold text-white">{status}</span>}
+        <button type="button" aria-label="Adicionar aos favoritos" onClick={(event) => event.preventDefault()} className="absolute right-3 top-3 grid size-9 place-items-center rounded-full bg-white/95 text-sky-800 shadow-sm transition hover:bg-white"><Heart className="size-5" /></button>
       </div>
 
       {/* Content */}
-      <div className="min-w-0 flex-1 p-4 sm:p-5">
-        {/* Price */}
-        <p className="text-xl font-bold text-emerald-700">
+      <div className="min-w-0 p-4 sm:p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0"><h3 className="truncate text-base font-bold text-sky-800 group-hover:underline">{title}</h3><p className="mt-0.5 flex items-center gap-1 text-sm text-slate-600"><MapPin className="size-3.5 shrink-0" /><span className="truncate">{location}</span></p></div>
+          <p className="shrink-0 text-xl font-bold text-slate-900">
           €{price.toLocaleString('pt-PT')}
           {transaction === 'rent' && (
             <span className="text-sm font-normal text-gray-500">/mês</span>
           )}
-        </p>
+          </p>
+        </div>
         {pricePerM2 && (
-          <p className="text-xs font-medium text-gray-500">{pricePerM2}</p>
+          <p className="mt-1 text-xs font-medium text-slate-500">{pricePerM2}</p>
         )}
-
-        {/* Title */}
-        <h3 className="mt-1 font-semibold text-gray-900 line-clamp-1 leading-tight">
-          {title}
-        </h3>
-
-        {/* Location */}
-        <p className="text-sm text-gray-500 truncate flex items-center gap-1">
-          <MapPin className="w-3.5 h-3.5 shrink-0" />
-          <span>{location}</span>
-        </p>
-
-        {/* Badges */}
-        <div className="mt-3 flex flex-wrap gap-1.5">
+        <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 border-y border-slate-100 py-3 text-sm font-medium text-slate-700">
           {areaM2 && (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded-md">
+            <span className="inline-flex items-center gap-1"><Maximize className="size-4 text-slate-500" />
               {areaM2}m²
             </span>
           )}
           {bedrooms && (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded-md">
-              <Bed className="w-3 h-3" />
+            <span className="inline-flex items-center gap-1"><BedDouble className="size-4 text-slate-500" />
               {bedrooms} {bedrooms === 1 ? 'quarto' : 'quartos'}
             </span>
           )}
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-700 text-xs font-medium rounded-md">
-            {typeLabel}
-          </span>
-          <span
-            className={cn(
-              'inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-md',
-              transaction === 'sale'
-                ? 'bg-blue-50 text-blue-700'
-                : 'bg-purple-50 text-purple-700',
-            )}
-          >
-            {transactionLabel}
-          </span>
+          {property.bathrooms && <span className="inline-flex items-center gap-1"><Bath className="size-4 text-slate-500" />{property.bathrooms} {property.bathrooms === 1 ? 'casa de banho' : 'casas de banho'}</span>}
+          <span className="text-slate-500">{typeLabel}</span>
         </div>
 
-        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-gray-100 pt-3 text-xs text-gray-500">
+        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
           {agency && <span className="inline-flex items-center gap-1"><Building2 className="size-3.5" />{agency.name}</span>}
           {listedDate && <span className="inline-flex items-center gap-1"><CalendarDays className="size-3.5" />Publicado {listedDate}</span>}
-          {status && <span className="font-medium text-amber-700">{status}</span>}
         </div>
       </div>
     </article>

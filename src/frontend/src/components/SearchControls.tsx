@@ -1,5 +1,5 @@
 import { useState, type ChangeEvent } from 'react'
-import { ChevronDown, SlidersHorizontal, X } from 'lucide-react'
+import { ChevronDown, Search, SlidersHorizontal, X } from 'lucide-react'
 import { useFilterStore } from '@/stores/filterStore'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -16,7 +16,7 @@ const PROPERTY_TYPES = [
   { value: 'commercial', label: 'Comercial' },
 ] as const
 
-const inputClass = 'h-11 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm shadow-sm outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100'
+const inputClass = 'h-10 w-full rounded border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-[#007ca8] focus:ring-2 focus:ring-sky-100'
 
 function FilterChips() {
   const store = useFilterStore()
@@ -34,11 +34,11 @@ function FilterChips() {
   return (
     <div className="flex flex-wrap items-center gap-2 pt-3" aria-label="Filtros aplicados">
       {chips.map((chip) => (
-        <button key={chip.label} type="button" onClick={chip.clear} className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-800 hover:bg-emerald-100">
+        <button key={chip.label} type="button" onClick={chip.clear} className="inline-flex items-center gap-1 rounded-full bg-sky-50 px-3 py-1 text-xs font-medium text-sky-800 hover:bg-sky-100">
           {chip.label}<X className="size-3" />
         </button>
       ))}
-      <button type="button" onClick={store.clearFilters} className="text-xs font-medium text-emerald-700 hover:text-emerald-900">Limpar tudo</button>
+      <button type="button" onClick={store.clearFilters} className="text-xs font-medium text-sky-700 hover:text-sky-900">Limpar tudo</button>
     </div>
   )
 }
@@ -50,7 +50,7 @@ function MoreFilters({ compact = false }: { compact?: boolean }) {
 
   return (
     <div className={cn(compact ? 'space-y-4' : 'relative')}>
-      {!compact && <Button type="button" variant="outline" className="h-11 gap-2" onClick={() => setOpen(!open)} aria-expanded={open}><SlidersHorizontal className="size-4" />Mais filtros<ChevronDown className={cn('size-4 transition-transform', open && 'rotate-180')} /></Button>}
+      {!compact && <Button type="button" variant="outline" className="h-10 gap-2 rounded border-sky-700 px-4 text-sky-800 hover:bg-sky-50" onClick={() => setOpen(!open)} aria-expanded={open}><SlidersHorizontal className="size-4" />Mais filtros<ChevronDown className={cn('size-4 transition-transform', open && 'rotate-180')} /></Button>}
       {open && (
         <div className={cn(compact ? 'space-y-4' : 'absolute right-0 z-30 mt-2 w-[22rem] rounded-xl border border-gray-200 bg-white p-4 shadow-xl')}>
           <div className="grid grid-cols-2 gap-3">
@@ -89,10 +89,10 @@ export default function SearchControls() {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   return <>
-    <section className="sticky top-0 z-20 -mx-4 border-b border-gray-100 bg-white/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8" aria-label="Pesquisa de imóveis">
-      <div className="mx-auto grid max-w-7xl gap-2 md:grid-cols-[minmax(15rem,2fr)_auto_auto_auto_auto]">
+    <section className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 py-3 shadow-sm backdrop-blur" aria-label="Pesquisa de imóveis">
+      <div className="mx-auto grid max-w-7xl gap-2 px-4 md:grid-cols-[minmax(15rem,2fr)_auto_auto_auto_auto] sm:px-6 lg:px-8">
         <label className="sr-only" htmlFor="locality">Localidade</label>
-        <input id="locality" list="pombal-localities" value={store.locality ?? ''} onChange={(e) => store.setLocality(e.target.value || undefined)} placeholder="Pesquisar localidade em Pombal" className={inputClass} />
+        <div className="flex"><input id="locality" list="pombal-localities" value={store.locality ?? ''} onChange={(e) => store.setLocality(e.target.value || undefined)} placeholder="Localidade, bairro ou código postal" className={inputClass + ' rounded-r-none'} /><button type="button" aria-label="Pesquisar" className="grid h-10 w-11 shrink-0 place-items-center rounded-r bg-[#f7a21b] text-white hover:bg-amber-600"><Search className="size-4" /></button></div>
         <datalist id="pombal-localities">{LOCALITIES.map((locality) => <option key={locality} value={locality} />)}</datalist>
         <select aria-label="Tipo de negócio" value={store.transaction ?? ''} onChange={(e) => store.setTransaction(e.target.value || undefined)} className={inputClass + ' md:w-36'}><option value="">Comprar ou arrendar</option><option value="sale">Comprar</option><option value="rent">Arrendar</option></select>
         <div className="grid grid-cols-2 gap-2"><input aria-label="Preço mínimo" type="number" min="0" step="10000" value={store.priceMin ?? ''} onChange={(e) => store.setPriceMin(e.target.value ? Number(e.target.value) : undefined)} placeholder="Preço mín." className={inputClass} /><input aria-label="Preço máximo" type="number" min="0" step="10000" value={store.priceMax ?? ''} onChange={(e) => store.setPriceMax(e.target.value ? Number(e.target.value) : undefined)} placeholder="Preço máx." className={inputClass} /></div>
@@ -100,7 +100,7 @@ export default function SearchControls() {
         <div className="hidden md:block"><MoreFilters /></div>
         <Button type="button" variant="outline" onClick={() => setMobileOpen(true)} className="h-11 gap-2 md:hidden"><SlidersHorizontal className="size-4" />Filtros</Button>
       </div>
-      <div className="mx-auto max-w-7xl"><FilterChips /></div>
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8"><FilterChips /></div>
     </section>
     {mobileOpen && <div className="fixed inset-0 z-50 bg-black/40 p-4 md:hidden" onClick={() => setMobileOpen(false)}><div role="dialog" aria-modal="true" aria-label="Mais filtros" className="absolute inset-x-0 bottom-0 max-h-[80vh] overflow-y-auto rounded-t-2xl bg-white p-5" onClick={(e) => e.stopPropagation()}><div className="mb-5 flex items-center justify-between"><h2 className="font-semibold">Mais filtros</h2><button type="button" onClick={() => setMobileOpen(false)} aria-label="Fechar filtros"><X /></button></div><MoreFilters compact /><Button type="button" className="mt-6 w-full" onClick={() => setMobileOpen(false)}>Ver resultados</Button></div></div>}
   </>

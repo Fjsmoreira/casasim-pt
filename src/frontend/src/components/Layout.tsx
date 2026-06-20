@@ -1,26 +1,24 @@
+import { Heart, House, MapPinned, UserRound } from 'lucide-react'
 import { Outlet, Link } from 'react-router-dom'
 
 export default function Layout() {
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="border-b border-gray-200 bg-white">
-        <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <Link to="/" className="text-xl font-bold text-emerald-700">
+      <header className="border-b border-amber-600 bg-[#f7a21b] text-white">
+        <nav className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+          <Link to="/" className="rounded bg-[#173c52] px-2.5 py-1 text-lg font-bold italic tracking-tight shadow-sm">
             CasaSim.pt
           </Link>
-          <div className="flex gap-6 text-sm font-medium text-gray-600">
-            <Link to="/" className="hover:text-emerald-700 transition-colors">
-              Início
-            </Link>
-            <Link to="/search" className="hover:text-emerald-700 transition-colors">
-              Imóveis
-            </Link>
-            <Link to="/map" className="hover:text-emerald-700 transition-colors">
-              Mapa
-            </Link>
-            <Link to="/admin" className="hover:text-emerald-700 transition-colors">
-              Admin
-            </Link>
+          <div className="hidden items-center gap-6 text-sm font-medium md:flex">
+            <Link to="/search" className="transition-opacity hover:opacity-75">Comprar</Link>
+            <Link to="/search?transaction=rent" className="transition-opacity hover:opacity-75">Arrendar</Link>
+            <Link to="/" className="transition-opacity hover:opacity-75">Vender</Link>
+          </div>
+          <div className="flex items-center gap-4 text-sm font-medium">
+            <Link to="/" aria-label="Início" className="hidden items-center gap-1.5 sm:flex"><House className="size-4" />Início</Link>
+            <Link to="/map" aria-label="Mapa" className="hidden items-center gap-1.5 sm:flex"><MapPinned className="size-4" />Mapa</Link>
+            <Link to="/" aria-label="Favoritos" className="flex items-center gap-1.5"><Heart className="size-4" /><span className="hidden sm:inline">Favoritos</span></Link>
+            <Link to="/admin" aria-label="Conta" className="flex items-center gap-1.5"><UserRound className="size-4" /><span className="hidden sm:inline">Conta</span></Link>
           </div>
         </nav>
       </header>
