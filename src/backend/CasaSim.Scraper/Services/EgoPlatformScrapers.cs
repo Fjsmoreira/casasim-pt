@@ -136,7 +136,7 @@ internal static class EgoSitemapScraper
                     var url = m.Groups[1].Value;
                     var slug = m.Groups[2].Value;
                     var numericId = m.Groups[3].Value;
-                    if (!results.Any(r => r.NumericId == numericId))
+                    if (!results.Any(r => r.Item3 == numericId))
                         results.Add((url, slug, numericId));
                 }
 
@@ -166,7 +166,7 @@ internal static class EgoSitemapScraper
             {
                 var slug = m.Groups[1].Value;
                 var id = m.Groups[2].Value;
-                if (!results.Any(r => r.NumericId == id))
+                if (!results.Any(r => r.Item3 == id))
                     results.Add(($"{baseUrl}/imovel/{slug}/{id}", slug, id));
             }
         }
