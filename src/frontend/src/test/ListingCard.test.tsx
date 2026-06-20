@@ -64,9 +64,9 @@ describe('ListingCard', () => {
   it('renders an image when images are provided', () => {
     render(<ListingCard property={mockListing} />)
 
-    const img = screen.getByRole('img')
-    expect(img).toBeInTheDocument()
-    expect(img).toHaveAttribute('src', 'https://example.com/photo_thumb.jpg')
+    const images = screen.getAllByRole('img')
+    expect(images).toHaveLength(3)
+    expect(images[0]).toHaveAttribute('src', 'https://example.com/photo_thumb.jpg')
   })
 
   it('renders location defaulting to Pombal when no city/parish', () => {

@@ -40,7 +40,9 @@ export default function ListingCard({ property }: ListingCardProps) {
 
   const type = normalizeKey(property.type ?? property.propertyType) ?? 'other'
   const transaction = normalizeKey(property.transaction ?? property.priceType) ?? 'sale'
-  const imageUrl = primaryImage?.thumbnailUrl || primaryImage?.url
+  const images = property.images?.length
+    ? property.images
+    : primaryImage ? [primaryImage] : []
   const location = [parish, city].filter(Boolean).join(', ') || 'Pombal'
   const typeLabel = TYPE_LABELS[type] || type
   const transactionLabel = TRANSACTION_LABELS[transaction] || transaction
@@ -51,10 +53,10 @@ export default function ListingCard({ property }: ListingCardProps) {
   return (
     <article className="group overflow-hidden rounded border border-slate-200 bg-white shadow-sm transition-all duration-200 hover:border-slate-300 hover:shadow-md">
       {/* Image */}
-      <div className="relative h-56 overflow-hidden bg-slate-100 sm:h-72">
-        {imageUrl ? (
+      <div className="grid h-56 grid-cols-[2fr_1fr] gap-1 overflow-hidden bg-slate-100 sm:h-72">
+        {images[0] ? (
           <img
-            src={imageUrl}
+            src={images[0].thumbnailUrl || images[0].url}
             alt={title}
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
           />
@@ -63,6 +65,13 @@ export default function ListingCard({ property }: ListingCardProps) {
             <Home className="size-12 text-sky-400" />
           </div>
         )}
+        <div className="grid grid-rows-2 gap-1">
+          {[images[1], images[2]].map((image, index) => image ? (
+            <img key={image.url} src={image.thumbnailUrl || image.url} alt={image.altText || `${title} — foto ${index + 2}`} className="h-full w-full object-cover" />
+          ) : (
+            <div key={index} className="flex items-center justify-center bg-slate-200 text-slate-400"><Home className="size-6" /></div>
+          ))}
+        </div>
         <span className="absolute left-3 top-3 rounded bg-[#f7a21b] px-2 py-1 text-[11px] font-bold uppercase tracking-wide text-white">{transactionLabel}</span>
         {status && <span className="absolute left-3 top-11 rounded bg-slate-800/85 px-2 py-1 text-[11px] font-semibold text-white">{status}</span>}
         <button type="button" aria-label="Adicionar aos favoritos" onClick={(event) => event.preventDefault()} className="absolute right-3 top-3 grid size-9 place-items-center rounded-full bg-white/95 text-sky-800 shadow-sm transition hover:bg-white"><Heart className="size-5" /></button>

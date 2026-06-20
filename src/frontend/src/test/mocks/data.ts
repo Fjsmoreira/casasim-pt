@@ -18,6 +18,11 @@ export const mockListing: ListingSummary = {
     thumbnailUrl: 'https://example.com/photo_thumb.jpg',
     altText: 'Moradia T3 em Pombal',
   },
+  images: [
+    { url: 'https://example.com/photo.jpg', thumbnailUrl: 'https://example.com/photo_thumb.jpg', altText: 'Moradia T3 em Pombal' },
+    { url: 'https://example.com/photo2.jpg', thumbnailUrl: 'https://example.com/photo2_thumb.jpg', altText: 'Moradia T3 em Pombal — exterior' },
+    { url: 'https://example.com/photo3.jpg', thumbnailUrl: 'https://example.com/photo3_thumb.jpg', altText: 'Moradia T3 em Pombal — jardim' },
+  ],
   agency: {
     id: 'agency-1',
     name: 'Imobiliária Central',
@@ -43,6 +48,7 @@ export const mockListingNoImage: ListingSummary = {
   bedrooms: 2,
   areaM2: 85,
   primaryImage: undefined,
+  images: undefined,
   city: 'Pombal',
   parish: 'Vila',
 }
@@ -60,6 +66,9 @@ export const mockListingRent: ListingSummary = {
     url: 'https://example.com/rent.jpg',
     thumbnailUrl: 'https://example.com/rent_thumb.jpg',
   },
+  images: [
+    { url: 'https://example.com/rent.jpg', thumbnailUrl: 'https://example.com/rent_thumb.jpg' },
+  ],
   city: 'Leiria',
   parish: 'Leiria',
 }

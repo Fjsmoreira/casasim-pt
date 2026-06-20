@@ -18,6 +18,7 @@ public sealed class ListingSummaryDto
 
     public AgencyDto? Agency { get; init; }
     public ListingImageDto? PrimaryImage { get; init; }
+    public List<ListingImageDto> Images { get; init; } = [];
 
     public DateTimeOffset? PublishedAt { get; init; }
     public DateTimeOffset FirstSeenAt { get; init; }

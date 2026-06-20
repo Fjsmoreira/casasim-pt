@@ -120,7 +120,7 @@ public sealed class ListingsController : ControllerBase
         [FromQuery] decimal? minPrice,
         [FromQuery] decimal? maxPrice,
         [FromQuery] int? minBedrooms,
-        [FromQuery] string? locality)
+        [FromQuery] string? locality = null)
     {
         // --- Require bounding box ---
         if (swLat is null || swLng is null || neLat is null || neLng is null)

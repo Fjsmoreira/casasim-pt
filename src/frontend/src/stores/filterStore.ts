@@ -36,7 +36,7 @@ const initialState = {
   type: undefined,
   bedrooms: undefined,
   minAreaM2: undefined,
-  transaction: undefined,
+  transaction: 'sale',
   locality: undefined,
   agencySlug: undefined,
   sortBy: undefined,

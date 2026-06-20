@@ -12,11 +12,6 @@ const PROPERTY_TYPES = [
   { value: 'other', label: 'Outro' },
 ] as const
 
-const TRANSACTIONS = [
-  { value: 'sale', label: 'Venda' },
-  { value: 'rent', label: 'Arrendamento' },
-] as const
-
 const BEDROOM_OPTIONS = [
   { value: 1, label: '1' },
   { value: 2, label: '2' },
@@ -64,14 +59,14 @@ const inputCls =
 function FilterContent({ className }: { className?: string }) {
   const {
     priceMin, priceMax,
-    type, bedrooms, minAreaM2, transaction, locality, agencySlug, sortBy,
-    setPriceMin, setPriceMax, setType, setBedrooms, setMinAreaM2, setTransaction, setLocality, setAgencySlug, setSortBy,
+    type, bedrooms, minAreaM2, locality, agencySlug, sortBy,
+    setPriceMin, setPriceMax, setType, setBedrooms, setMinAreaM2, setLocality, setAgencySlug, setSortBy,
     clearFilters,
   } = useFilterStore()
 
   const anyActive = priceMin !== undefined || priceMax !== undefined ||
     type !== undefined || bedrooms !== undefined || minAreaM2 !== undefined ||
-    transaction !== undefined || locality !== undefined || agencySlug !== undefined || sortBy !== undefined
+    locality !== undefined || agencySlug !== undefined || sortBy !== undefined
 
   const handleBedroomChange = useCallback(
     (e: ChangeEvent<HTMLSelectElement>) => {
@@ -97,28 +92,6 @@ function FilterContent({ className }: { className?: string }) {
             <option key={option.value} value={option.value}>{option.label}</option>
           ))}
         </select>
-      </fieldset>
-
-      {/* ── Transaction toggle ── */}
-      <fieldset>
-        <legend className="text-sm font-medium text-foreground mb-2">Tipo de negócio</legend>
-        <div className="flex gap-2">
-          {TRANSACTIONS.map((t) => (
-            <button
-              key={t.value}
-              type="button"
-              onClick={() => setTransaction(transaction === t.value ? undefined : t.value)}
-              className={cn(
-                'flex-1 rounded-md border px-3 py-1.5 text-sm font-medium transition-colors',
-                transaction === t.value
-                  ? 'border-emerald-600 bg-emerald-50 text-emerald-700'
-                  : 'border-input bg-background text-muted-foreground hover:bg-accent',
-              )}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
       </fieldset>
 
       {/* ── Property type ── */}

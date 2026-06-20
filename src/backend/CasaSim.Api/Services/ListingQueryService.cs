@@ -85,6 +85,20 @@ public sealed class ListingQueryService : IListingQueryService
                         SortOrder = i.SortOrder,
                     })
                     .FirstOrDefault(),
+                Images = l.Images
+                    .OrderBy(i => i.IsPrimary ? 0 : 1)
+                    .ThenBy(i => i.SortOrder)
+                    .Take(3)
+                    .Select(i => new ListingImageDto
+                    {
+                        Id = i.Id,
+                        Url = i.Url,
+                        ThumbnailUrl = i.ThumbnailUrl,
+                        AltText = i.AltText,
+                        IsPrimary = i.IsPrimary,
+                        SortOrder = i.SortOrder,
+                    })
+                    .ToList(),
                 PublishedAt = l.PublishedAt,
                 FirstSeenAt = l.FirstSeenAt,
                 LastSeenAt = l.LastSeenAt,

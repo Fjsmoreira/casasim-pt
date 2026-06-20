@@ -104,7 +104,6 @@ describe('SearchPage', () => {
     })
 
     expect(screen.getByLabelText('Localidade')).toBeInTheDocument()
-    expect(screen.getByLabelText('Tipo de negócio')).toBeInTheDocument()
     expect(screen.getByLabelText('Tipo de imóvel')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /mais filtros/i })).toBeInTheDocument()
   })

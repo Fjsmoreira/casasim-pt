@@ -11,7 +11,7 @@ beforeEach(() => {
     priceMax: undefined,
     type: undefined,
     bedrooms: undefined,
-    transaction: undefined,
+    transaction: 'sale',
     mobileOpen: false,
   })
 })
@@ -22,25 +22,9 @@ describe('FilterSidebar', () => {
 
     // Use getAllByText for texts that appear in both desktop + mobile sheet
     expect(screen.getAllByText('Filtros').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText('Tipo de negócio').length).toBeGreaterThanOrEqual(1)
     expect(screen.getAllByText('Tipo de imóvel').length).toBeGreaterThanOrEqual(1)
     expect(screen.getAllByText('Faixa de preço (€)').length).toBeGreaterThanOrEqual(1)
     expect(screen.getAllByText('Quartos').length).toBeGreaterThanOrEqual(1)
-  })
-
-  it('updates transaction type on button click', async () => {
-    const user = userEvent.setup()
-    render(<FilterSidebar />)
-
-    // Use getAllByText and pick the first one (desktop version)
-    const vendaButtons = screen.getAllByText('Venda')
-    await user.click(vendaButtons[0])
-
-    expect(useFilterStore.getState().transaction).toBe('sale')
-
-    // Click again to toggle off
-    await user.click(vendaButtons[0])
-    expect(useFilterStore.getState().transaction).toBeUndefined()
   })
 
   it('updates property type on button click', async () => {
@@ -77,8 +61,8 @@ describe('FilterSidebar', () => {
     expect(screen.queryAllByText('Limpar filtros').length).toBe(0)
 
     // Activate a filter
-    const vendaButtons = screen.getAllByText('Venda')
-    await user.click(vendaButtons[0])
+    const moradiaButtons = screen.getAllByText('Moradia')
+    await user.click(moradiaButtons[0])
 
     // Clear button appears (may appear in desktop + mobile versions)
     expect(screen.getAllByText('Limpar filtros').length).toBeGreaterThanOrEqual(1)
@@ -89,9 +73,7 @@ describe('FilterSidebar', () => {
     render(<FilterSidebar />)
 
     // Set some filters
-    const vendaButtons = screen.getAllByText('Venda')
     const moradiaButtons = screen.getAllByText('Moradia')
-    await user.click(vendaButtons[0])
     await user.click(moradiaButtons[0])
     expect(useFilterStore.getState().transaction).toBe('sale')
     expect(useFilterStore.getState().type).toBe('house')
@@ -99,7 +81,7 @@ describe('FilterSidebar', () => {
     // Click clear
     const clearButtons = screen.getAllByText('Limpar filtros')
     await user.click(clearButtons[0])
-    expect(useFilterStore.getState().transaction).toBeUndefined()
+    expect(useFilterStore.getState().transaction).toBe('sale')
     expect(useFilterStore.getState().type).toBeUndefined()
   })
 
@@ -135,10 +117,4 @@ describe('FilterSidebar', () => {
     expect(screen.getAllByText('Outro').length).toBeGreaterThanOrEqual(1)
   })
 
-  it('renders both transaction buttons', () => {
-    render(<FilterSidebar />)
-
-    expect(screen.getAllByText('Venda').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText('Arrendamento').length).toBeGreaterThanOrEqual(1)
-  })
 })

@@ -22,7 +22,6 @@ function FilterChips() {
   const store = useFilterStore()
   const chips = [
     store.locality && { label: store.locality, clear: () => store.setLocality(undefined) },
-    store.transaction && { label: store.transaction === 'rent' ? 'Arrendamento' : 'Compra', clear: () => store.setTransaction(undefined) },
     (store.priceMin !== undefined || store.priceMax !== undefined) && { label: `${store.priceMin ? `€${store.priceMin.toLocaleString('pt-PT')}` : 'Qualquer'} – ${store.priceMax ? `€${store.priceMax.toLocaleString('pt-PT')}` : 'Qualquer'}`, clear: () => { store.setPriceMin(undefined); store.setPriceMax(undefined) } },
     store.type && { label: PROPERTY_TYPES.find((item) => item.value === store.type)?.label ?? store.type, clear: () => store.setType(undefined) },
     store.bedrooms !== undefined && { label: `${store.bedrooms}+ quartos`, clear: () => store.setBedrooms(undefined) },
@@ -90,17 +89,18 @@ export default function SearchControls() {
 
   return <>
     <section className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 py-3 shadow-sm backdrop-blur" aria-label="Pesquisa de imóveis">
-      <div className="mx-auto grid max-w-7xl gap-2 px-4 md:grid-cols-[minmax(15rem,2fr)_auto_auto_auto_auto] sm:px-6 lg:px-8">
+      <div className="mx-auto flex max-w-2xl px-4 sm:px-6">
         <label className="sr-only" htmlFor="locality">Localidade</label>
         <div className="flex"><input id="locality" list="pombal-localities" value={store.locality ?? ''} onChange={(e) => store.setLocality(e.target.value || undefined)} placeholder="Localidade, bairro ou código postal" className={inputClass + ' rounded-r-none'} /><button type="button" aria-label="Pesquisar" className="grid h-10 w-11 shrink-0 place-items-center rounded-r bg-[#f7a21b] text-white hover:bg-amber-600"><Search className="size-4" /></button></div>
         <datalist id="pombal-localities">{LOCALITIES.map((locality) => <option key={locality} value={locality} />)}</datalist>
-        <select aria-label="Tipo de negócio" value={store.transaction ?? ''} onChange={(e) => store.setTransaction(e.target.value || undefined)} className={inputClass + ' md:w-36'}><option value="">Comprar ou arrendar</option><option value="sale">Comprar</option><option value="rent">Arrendar</option></select>
-        <div className="grid grid-cols-2 gap-2"><input aria-label="Preço mínimo" type="number" min="0" step="10000" value={store.priceMin ?? ''} onChange={(e) => store.setPriceMin(e.target.value ? Number(e.target.value) : undefined)} placeholder="Preço mín." className={inputClass} /><input aria-label="Preço máximo" type="number" min="0" step="10000" value={store.priceMax ?? ''} onChange={(e) => store.setPriceMax(e.target.value ? Number(e.target.value) : undefined)} placeholder="Preço máx." className={inputClass} /></div>
-        <select aria-label="Tipo de imóvel" value={store.type ?? ''} onChange={(e) => store.setType(e.target.value || undefined)} className={inputClass + ' md:w-40'}><option value="">Tipo de imóvel</option>{PROPERTY_TYPES.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}</select>
-        <div className="hidden md:block"><MoreFilters /></div>
-        <Button type="button" variant="outline" onClick={() => setMobileOpen(true)} className="h-11 gap-2 md:hidden"><SlidersHorizontal className="size-4" />Filtros</Button>
       </div>
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8"><FilterChips /></div>
+      <div className="mx-auto mt-3 flex max-w-4xl flex-wrap items-center justify-center gap-2 px-4 sm:px-6">
+        <div className="grid grid-cols-2 gap-2"><input aria-label="Preço mínimo" type="number" min="0" step="10000" value={store.priceMin ?? ''} onChange={(e) => store.setPriceMin(e.target.value ? Number(e.target.value) : undefined)} placeholder="Preço mín." className={inputClass} /><input aria-label="Preço máximo" type="number" min="0" step="10000" value={store.priceMax ?? ''} onChange={(e) => store.setPriceMax(e.target.value ? Number(e.target.value) : undefined)} placeholder="Preço máx." className={inputClass} /></div>
+        <select aria-label="Tipo de imóvel" value={store.type ?? ''} onChange={(e) => store.setType(e.target.value || undefined)} className={inputClass + ' w-40'}><option value="">Tipo de imóvel</option>{PROPERTY_TYPES.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}</select>
+        <div className="hidden sm:block"><MoreFilters /></div>
+        <Button type="button" variant="outline" onClick={() => setMobileOpen(true)} className="h-10 gap-2 sm:hidden"><SlidersHorizontal className="size-4" />Filtros</Button>
+      </div>
+      <div className="mx-auto max-w-4xl px-4 sm:px-6"><FilterChips /></div>
     </section>
     {mobileOpen && <div className="fixed inset-0 z-50 bg-black/40 p-4 md:hidden" onClick={() => setMobileOpen(false)}><div role="dialog" aria-modal="true" aria-label="Mais filtros" className="absolute inset-x-0 bottom-0 max-h-[80vh] overflow-y-auto rounded-t-2xl bg-white p-5" onClick={(e) => e.stopPropagation()}><div className="mb-5 flex items-center justify-between"><h2 className="font-semibold">Mais filtros</h2><button type="button" onClick={() => setMobileOpen(false)} aria-label="Fechar filtros"><X /></button></div><MoreFilters compact /><Button type="button" className="mt-6 w-full" onClick={() => setMobileOpen(false)}>Ver resultados</Button></div></div>}
   </>

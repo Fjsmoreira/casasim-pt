@@ -10,7 +10,7 @@ export default function Layout() {
             CasaSim.pt
           </Link>
           <div className="hidden items-center gap-6 text-sm font-medium md:flex">
-            <Link to="/search" className="transition-opacity hover:opacity-75">Comprar</Link>
+            <Link to="/search?transaction=sale" className="transition-opacity hover:opacity-75">Comprar</Link>
             <Link to="/search?transaction=rent" className="transition-opacity hover:opacity-75">Arrendar</Link>
             <Link to="/" className="transition-opacity hover:opacity-75">Vender</Link>
           </div>

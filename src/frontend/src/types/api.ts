@@ -23,6 +23,11 @@ export interface ListingSummary {
     thumbnailUrl?: string
     altText?: string
   }
+  images?: Array<{
+    url: string
+    thumbnailUrl?: string
+    altText?: string
+  }>
   agency?: {
     id: string
     name: string
