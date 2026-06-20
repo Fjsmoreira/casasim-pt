@@ -1,8 +1,14 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import FilterSidebar from '@/components/FilterSidebar'
 import { useFilterStore } from '@/stores/filterStore'
+
+function renderSidebar() {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  return render(<QueryClientProvider client={queryClient}><FilterSidebar /></QueryClientProvider>)
+}
 
 // Reset the store before each test
 beforeEach(() => {
@@ -18,7 +24,7 @@ beforeEach(() => {
 
 describe('FilterSidebar', () => {
   it('renders all filter sections', () => {
-    render(<FilterSidebar />)
+    renderSidebar()
 
     // Use getAllByText for texts that appear in both desktop + mobile sheet
     expect(screen.getAllByText('Filtros').length).toBeGreaterThanOrEqual(1)
@@ -29,7 +35,7 @@ describe('FilterSidebar', () => {
 
   it('updates property type on button click', async () => {
     const user = userEvent.setup()
-    render(<FilterSidebar />)
+    renderSidebar()
 
     const moradiaButtons = screen.getAllByText('Moradia')
     await user.click(moradiaButtons[0])
@@ -39,7 +45,7 @@ describe('FilterSidebar', () => {
 
   it('updates price range inputs', async () => {
     const user = userEvent.setup()
-    render(<FilterSidebar />)
+    renderSidebar()
 
     const minInputs = screen.getAllByPlaceholderText('Mín.')
     const maxInputs = screen.getAllByPlaceholderText('Máx.')
@@ -55,7 +61,7 @@ describe('FilterSidebar', () => {
 
   it('shows clear filters button when filters are active', async () => {
     const user = userEvent.setup()
-    render(<FilterSidebar />)
+    renderSidebar()
 
     // No clear button initially
     expect(screen.queryAllByText('Limpar filtros').length).toBe(0)
@@ -70,7 +76,7 @@ describe('FilterSidebar', () => {
 
   it('clears all filters when clear button is clicked', async () => {
     const user = userEvent.setup()
-    render(<FilterSidebar />)
+    renderSidebar()
 
     // Set some filters
     const moradiaButtons = screen.getAllByText('Moradia')
@@ -87,7 +93,7 @@ describe('FilterSidebar', () => {
 
   it('updates bedrooms via select dropdown', async () => {
     const user = userEvent.setup()
-    render(<FilterSidebar />)
+    renderSidebar()
 
     const bedroomSelect = screen.getAllByLabelText('Quartos')[0]
     await user.selectOptions(bedroomSelect, '3')
@@ -97,7 +103,7 @@ describe('FilterSidebar', () => {
 
   it('resets bedrooms to undefined when selecting "Qualquer"', async () => {
     const user = userEvent.setup()
-    render(<FilterSidebar />)
+    renderSidebar()
 
     const bedroomSelect = screen.getAllByLabelText('Quartos')[0]
     await user.selectOptions(bedroomSelect, '3')
@@ -108,13 +114,21 @@ describe('FilterSidebar', () => {
   })
 
   it('renders all property type buttons', () => {
-    render(<FilterSidebar />)
+    renderSidebar()
 
     expect(screen.getAllByText('Moradia').length).toBeGreaterThanOrEqual(1)
     expect(screen.getAllByText('Apartamento').length).toBeGreaterThanOrEqual(1)
     expect(screen.getAllByText('Terreno').length).toBeGreaterThanOrEqual(1)
     expect(screen.getAllByText('Comercial').length).toBeGreaterThanOrEqual(1)
     expect(screen.getAllByText('Outro').length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('loads agencies from the API instead of using a fixed list', async () => {
+    renderSidebar()
+
+    await waitFor(() => {
+      expect(screen.getAllByRole('option', { name: 'Zome' }).length).toBeGreaterThanOrEqual(1)
+    })
   })
 
 })

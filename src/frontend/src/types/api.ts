@@ -47,6 +47,15 @@ export interface ListingSummary {
   updatedAt?: string
 }
 
+export interface Agency {
+  id: string
+  name: string
+  slug: string
+  websiteUrl?: string
+  contactEmail?: string
+  contactPhone?: string
+}
+
 /** Full property detail (from GET /api/listings/:id) */
 export interface ListingDetail {
   id: string

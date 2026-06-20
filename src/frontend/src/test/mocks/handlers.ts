@@ -2,6 +2,11 @@ import { http, HttpResponse } from 'msw'
 import { mockListResponse, mockEmptyListResponse, mockListingDetail, mockGeoJson, mockEmptyGeoJson } from './data'
 
 export const handlers = [
+  http.get('/api/agencies', () => HttpResponse.json([
+    { id: 'agency-1', name: 'Imobiliária Central', slug: 'imobiliaria-central' },
+    { id: 'agency-2', name: 'Zome', slug: 'zome' },
+  ])),
+
   // GET /api/listings — listings (SearchPage)
   http.get('/api/listings', ({ request }) => {
     const url = new URL(request.url)

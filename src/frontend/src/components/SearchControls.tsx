@@ -1,6 +1,7 @@
 import { useState, type ChangeEvent } from 'react'
 import { ChevronDown, Search, SlidersHorizontal, X } from 'lucide-react'
 import { useFilterStore } from '@/stores/filterStore'
+import { useAgencies } from '@/hooks'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
@@ -44,6 +45,7 @@ function FilterChips() {
 
 function MoreFilters({ compact = false }: { compact?: boolean }) {
   const store = useFilterStore()
+  const { data: agencies = [] } = useAgencies()
   const [open, setOpen] = useState(compact)
   const handleBedrooms = (event: ChangeEvent<HTMLSelectElement>) => store.setBedrooms(event.target.value ? Number(event.target.value) : undefined)
 
@@ -64,7 +66,8 @@ function MoreFilters({ compact = false }: { compact?: boolean }) {
           </div>
           <label className="block text-sm font-medium text-gray-700">Agência
             <select value={store.agencySlug ?? ''} onChange={(e) => store.setAgencySlug(e.target.value || undefined)} className={inputClass + ' mt-1'}>
-              <option value="">Todas as agências</option><option value="remax-pombal">RE/MAX</option><option value="century21-pombal">Century 21</option><option value="era-pombal">ERA</option>
+              <option value="">Todas as agências</option>
+              {agencies.map((agency) => <option key={agency.id} value={agency.slug}>{agency.name}</option>)}
             </select>
           </label>
         </div>

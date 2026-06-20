@@ -1,4 +1,5 @@
 import { useFilterStore } from '@/stores/filterStore'
+import { useAgencies } from '@/hooks'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { SlidersHorizontal, X } from 'lucide-react'
@@ -17,12 +18,6 @@ const BEDROOM_OPTIONS = [
   { value: 2, label: '2' },
   { value: 3, label: '3' },
   { value: 4, label: '4+' },
-] as const
-
-const AGENCIES = [
-  { value: 'remax-pombal', label: 'RE/MAX' },
-  { value: 'century21-pombal', label: 'Century 21' },
-  { value: 'era-pombal', label: 'ERA' },
 ] as const
 
 const SORT_OPTIONS = [
@@ -57,6 +52,7 @@ const inputCls =
 /* ─────────────── inner filter form content ─────────────── */
 
 function FilterContent({ className }: { className?: string }) {
+  const { data: agencies = [] } = useAgencies()
   const {
     priceMin, priceMax,
     type, bedrooms, minAreaM2, locality, agencySlug, sortBy,
@@ -168,8 +164,8 @@ function FilterContent({ className }: { className?: string }) {
           className={inputCls + ' appearance-none'}
         >
           <option value="">Todas</option>
-          {AGENCIES.map((agency) => (
-            <option key={agency.value} value={agency.value}>{agency.label}</option>
+          {agencies.map((agency) => (
+            <option key={agency.id} value={agency.slug}>{agency.name}</option>
           ))}
         </select>
       </fieldset>
