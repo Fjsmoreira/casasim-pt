@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
-using System.Xml.Linq;
 using CasaSim.Core.Interfaces;
 using CasaSim.Core.Models;
 using HtmlAgilityPack;
@@ -125,31 +124,21 @@ internal static class EgoSitemapScraper
                 if (!resp.IsSuccessStatusCode) continue;
 
                 var xml = await resp.Content.ReadAsStringAsync(ct);
-                var doc = XDocument.Parse(xml);
 
-                // Handle both <urlset> (direct URLs) and <sitemapindex> (nested sitemaps)
-                XNamespace ns = "http://www.sitemaps.org/schemas/sitemap/0.9";
-
-                // Check if it's an index
-                var sitemaps = doc.Descendants(ns + "sitemap");
-                foreach (var sm in sitemaps)
+                // ── Regex extraction from raw XML ──────────────
+                // More reliable than XDocument namespace handling
+                // across different .NET runtimes and XML configs.
+                var matches = Regex.Matches(xml,
+                    @"<loc>(https?://[^<]*/imovel/([^/]+)/(\d+))</loc>",
+                    RegexOptions.IgnoreCase);
+                foreach (Match m in matches)
                 {
-                    var loc = sm.Element(ns + "loc")?.Value;
-                    if (loc is not null && loc.Contains("pt-pt", StringComparison.OrdinalIgnoreCase))
-                    {
-                        var innerResp = await http.GetAsync(loc, ct);
-                        if (innerResp.IsSuccessStatusCode)
-                        {
-                            var innerXml = await innerResp.Content.ReadAsStringAsync(ct);
-                            var innerDoc = XDocument.Parse(innerXml);
-                            ExtractPropertyUrls(innerDoc, ns, baseUrl, results);
-                        }
-                    }
+                    var url = m.Groups[1].Value;
+                    var slug = m.Groups[2].Value;
+                    var numericId = m.Groups[3].Value;
+                    if (!results.Any(r => r.NumericId == numericId))
+                        results.Add((url, slug, numericId));
                 }
-
-                // Direct URLs
-                if (results.Count == 0)
-                    ExtractPropertyUrls(doc, ns, baseUrl, results);
 
                 if (results.Count > 0) break;
             }
@@ -159,27 +148,6 @@ internal static class EgoSitemapScraper
             }
         }
         return results;
-    }
-
-    private static void ExtractPropertyUrls(
-        XDocument doc, XNamespace ns, string baseUrl, List<(string Url, string Slug, string NumericId)> results)
-    {
-        var urls = doc.Descendants(ns + "url");
-        foreach (var urlElem in urls)
-        {
-            var loc = urlElem.Element(ns + "loc")?.Value;
-            if (loc is null) continue;
-
-            // eGO property URLs: /imovel/{slug}/{numeric-id}
-            var match = Regex.Match(loc, @"/imovel/([^/]+)/(\d+)", RegexOptions.IgnoreCase);
-            if (!match.Success) continue;
-
-            var slug = match.Groups[1].Value;
-            var numericId = match.Groups[2].Value;
-
-            if (!results.Any(r => r.NumericId == numericId))
-                results.Add((loc, slug, numericId));
-        }
     }
 
     private static async Task<List<(string Url, string Slug, string NumericId)>> DiscoverFromListingPageAsync(
@@ -229,21 +197,19 @@ internal static class EgoSitemapScraper
             var titleNode = doc.DocumentNode.SelectSingleNode("//title");
             var title = titleNode?.InnerText.Trim() ?? "";
 
-            // eGO pages render properties via Angular/Vue templates.
             // Check for any data in the page (json-ld, meta tags, hidden inputs)
             var metaDesc = doc.DocumentNode.SelectSingleNode("//meta[@name='description']");
             var description = metaDesc?.GetAttributeValue("content", "") ?? "";
 
             // ── Heuristic extraction from slug ─────────────────
-            // eGO URLs: /imovel/{property-type-slug}/{id}
-            // e.g., /imovel/moradia-isolada/12345, /imovel/apartamento/67890
             var propertyType = MapSlugToPropertyType(slug);
+            // eGO slugs often contain the city: "apartamento-t1-bela-vista-residences-pombal"
+            var city = ExtractCityFromSlug(slug) ?? "Pombal";
 
             // ── Try extracting structured data from the page ───
             decimal price = 0m;
             int? bedrooms = null;
             double? areaM2 = null;
-            string? city = "Pombal";
             var transaction = TransactionType.Sale;
             var images = new List<string>();
 
@@ -291,6 +257,7 @@ internal static class EgoSitemapScraper
         catch
         {
             // Return minimal property with just URL data
+            var fallbackCity = ExtractCityFromSlug(slug) ?? "Pombal";
             return new Property
             {
                 ExternalId = numericId,
@@ -299,12 +266,36 @@ internal static class EgoSitemapScraper
                 Currency = "EUR",
                 Type = MapSlugToPropertyType(slug),
                 Transaction = TransactionType.Sale,
-                City = "Pombal",
+                City = fallbackCity,
                 District = "Leiria",
                 ListingUrl = url,
                 Status = PropertyStatus.Active,
             };
         }
+    }
+
+    /// <summary>
+    /// Extract the city name from an eGO URL slug.
+    /// eGO slugs often end with the city: "apartamento-t1-bela-vista-residences-pombal"
+    /// The heuristic: take the last segment after the final hyphen as the city.
+    /// Returns null if the last segment doesn't look like a city name.
+    /// </summary>
+    private static string? ExtractCityFromSlug(string slug)
+    {
+        if (string.IsNullOrWhiteSpace(slug)) return null;
+        var parts = slug.Split('-');
+        // Take the last part as the candidate city
+        var last = parts[^1].Trim();
+        // Skip if it looks like a numeric ID or too short
+        if (last.Length < 3 || int.TryParse(last, out _)) return null;
+        // Skip common non-city suffixes
+        var skipWords = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "t0", "t1", "t2", "t3", "t4", "t5", "t6", "duplex",
+            "residences", "residence", "novo", "nova", "usado", "usada"
+        };
+        if (skipWords.Contains(last)) return null;
+        return last;
     }
 
     private static PropertyType MapSlugToPropertyType(string slug)
