@@ -26,3 +26,4 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 ENV DOTNET_ENVIRONMENT=Production
 ENTRYPOINT ["dotnet", "CasaSim.Scraper.dll"]
+# cache-bust: 1782033951
