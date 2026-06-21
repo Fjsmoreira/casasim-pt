@@ -250,6 +250,8 @@ public sealed class AdminController : ControllerBase
                     latest.ListingsUpdated,
                     latest.ListingsRemoved,
                     latest.ErrorMessage,
+                    latest.CurrentPhase,
+                    latest.LastActivityAt,
                 },
             };
         }));
@@ -347,6 +349,8 @@ public sealed class AdminController : ControllerBase
                 sl.ListingsUpdated,
                 sl.ListingsRemoved,
                 sl.ErrorMessage,
+                sl.CurrentPhase,
+                sl.LastActivityAt,
             })
             .ToListAsync(ct);
 
@@ -368,6 +372,8 @@ public sealed class AdminController : ControllerBase
             sl.ListingsUpdated,
             sl.ListingsRemoved,
             sl.ErrorMessage,
+            sl.CurrentPhase,
+            sl.LastActivityAt,
         }).ToList();
 
         return Ok(new PagedResult<object>
@@ -414,6 +420,76 @@ public sealed class AdminController : ControllerBase
             run.ListingsRemoved,
             run.ErrorMessage,
             run.ErrorDetails,
+            run.CurrentPhase,
+            run.LastActivityAt,
+        });
+    }
+
+    [HttpGet("scrape-runs/active")]
+    public async Task<ActionResult<object>> GetActiveScrapeRuns(CancellationToken ct)
+    {
+        var runs = await _db.ScrapeLogs
+            .AsNoTracking()
+            .Where(run => run.Status == ScrapeStatus.Started)
+            .OrderBy(run => run.StartedAt)
+            .Select(run => new
+            {
+                run.Id,
+                run.SourceName,
+                run.StartedAt,
+                run.CurrentPhase,
+                run.LastActivityAt,
+                run.ListingsFound,
+                run.ListingsCreated,
+                run.ListingsUpdated,
+                run.ListingsRemoved,
+            })
+            .ToListAsync(ct);
+
+        return Ok(runs);
+    }
+
+    [HttpGet("scrape-runs/{id:guid}/activity")]
+    public async Task<ActionResult<PagedResult<object>>> GetScrapeRunActivity(
+        Guid id,
+        [FromQuery] DateTimeOffset? after = null,
+        [FromQuery] int limit = 100,
+        CancellationToken ct = default)
+    {
+        var runExists = await _db.ScrapeLogs.AnyAsync(run => run.Id == id, ct);
+        if (!runExists)
+            return NotFound();
+
+        limit = Math.Clamp(limit, 1, 200);
+        IQueryable<ScrapeRunActivity> query = _db.ScrapeRunActivities
+            .AsNoTracking()
+            .Where(activity => activity.ScrapeLogId == id);
+
+        if (after is not null)
+            query = query.Where(activity => activity.CreatedAt > after.Value);
+
+        var items = await query
+            .OrderBy(activity => activity.CreatedAt)
+            .Take(limit)
+            .Select(activity => new
+            {
+                activity.Id,
+                level = activity.Level.ToString(),
+                activity.Phase,
+                activity.Message,
+                activity.CurrentCount,
+                activity.TotalCount,
+                activity.CreatedAt,
+            })
+            .Cast<object>()
+            .ToListAsync(ct);
+
+        return Ok(new PagedResult<object>
+        {
+            Items = items,
+            Page = 1,
+            PageSize = limit,
+            TotalCount = items.Count,
         });
     }
 

@@ -31,7 +31,10 @@ services:
       ASPNETCORE_ENVIRONMENT: Production
       AdminSettings__ApiKey: ${AdminSettings__ApiKey:?AdminSettings__ApiKey is required}
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     expose:
       - "5000"
     healthcheck:
@@ -41,6 +44,19 @@ services:
       retries: 3
       start_period: 30s
     restart: unless-stopped
+
+  migrate:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    environment:
+      ConnectionStrings__DefaultConnection: Host=db;Port=5432;Database=casasim;Username=${POSTGRES_USER:-casasim};Password=${POSTGRES_PASSWORD:-changeme}
+      DOTNET_ENVIRONMENT: Production
+    depends_on:
+      db:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c", "exec /app/efbundle --connection \"$$ConnectionStrings__DefaultConnection\""]
+    restart: "no"
 
   scraper:
     build:
@@ -55,6 +71,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD-SHELL", "cat /proc/1/cmdline >/dev/null"]
       interval: 30s

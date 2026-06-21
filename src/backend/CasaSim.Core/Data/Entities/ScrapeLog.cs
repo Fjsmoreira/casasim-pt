@@ -12,6 +12,8 @@ public sealed class ScrapeLog
     public ScrapeStatus Status { get; set; } = ScrapeStatus.Started;
     public DateTimeOffset StartedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? CompletedAt { get; set; }
+    public string? CurrentPhase { get; set; }
+    public DateTimeOffset? LastActivityAt { get; set; }
     public int ListingsFound { get; set; }
     public int ListingsCreated { get; set; }
     public int ListingsUpdated { get; set; }
@@ -25,6 +27,7 @@ public sealed class ScrapeLog
     public DateTimeOffset LastSeenAt { get; set; } = DateTimeOffset.UtcNow;
 
     public ICollection<ScrapeListingChange> ListingChanges { get; set; } = new List<ScrapeListingChange>();
+    public ICollection<ScrapeRunActivity> Activities { get; set; } = new List<ScrapeRunActivity>();
 }
 
 public enum ScrapeStatus

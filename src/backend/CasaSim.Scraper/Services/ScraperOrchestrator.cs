@@ -25,6 +25,7 @@ internal sealed class ScraperOrchestrator : BackgroundService
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<ScraperOrchestrator> _logger;
     private readonly IOptionsMonitor<Dictionary<string, ScraperSourceOptions>> _sourceOptions;
+    private DateOnly? _lastActivityCleanupDate;
 
     public ScraperOrchestrator(
         IServiceScopeFactory scopeFactory,
@@ -51,6 +52,8 @@ internal sealed class ScraperOrchestrator : BackgroundService
         while (await timer.WaitForNextTickAsync(stoppingToken))
         {
             var now = DateTime.UtcNow;
+
+            await CleanExpiredActivityAsync(stoppingToken);
 
             var due = await DiscoverDueSourcesAsync(lastRun, now, stoppingToken);
 
@@ -243,7 +246,15 @@ internal sealed class ScraperOrchestrator : BackgroundService
         IReadOnlyList<Core.Models.Property> properties;
         try
         {
+            await logging.RecordActivityAsync(logId, "scraping", "Fetching and parsing source listings.", ct: ct);
             properties = await scraper.ScrapeAsync(ct);
+
+            await logging.RecordActivityAsync(
+                logId,
+                "scraping",
+                $"Found {properties.Count} listing(s) in the source.",
+                currentCount: properties.Count,
+                ct: ct);
 
             _logger.LogInformation("Scraped {Count} properties from {Agency}", properties.Count, agencyName);
 
@@ -261,11 +272,25 @@ internal sealed class ScraperOrchestrator : BackgroundService
             }
 
             var upsertService = services.GetRequiredService<ListingUpsertService>();
+            await logging.RecordActivityAsync(
+                logId,
+                "upserting",
+                $"Upserting {properties.Count} listing(s).",
+                currentCount: 0,
+                totalCount: properties.Count,
+                ct: ct);
             var result = await upsertService.UpsertBatchAsync(properties, agencySlug, logId, ct);
             var seenExternalIds = properties
                 .Select(p => p.ExternalId)
                 .Where(id => !string.IsNullOrWhiteSpace(id))
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            await logging.RecordActivityAsync(
+                logId,
+                "reconciling",
+                $"Upsert complete: {result.Created} created, {result.Updated} updated. Reconciling missing listings.",
+                currentCount: result.Created + result.Updated,
+                totalCount: properties.Count,
+                ct: ct);
             var removed = await upsertService.MarkMissingListingsRemovedAsync(agencySlug, seenExternalIds, logId, ct);
 
             _logger.LogInformation(
@@ -368,5 +393,22 @@ internal sealed class ScraperOrchestrator : BackgroundService
         var tcs = new TaskCompletionSource();
         await using var _ = ct.Register(() => tcs.TrySetResult());
         await tcs.Task;
+    }
+
+    private async Task CleanExpiredActivityAsync(CancellationToken ct)
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        if (_lastActivityCleanupDate == today)
+            return;
+
+        using var scope = _scopeFactory.CreateScope();
+        var logging = scope.ServiceProvider.GetService<ScrapeLoggingService>();
+        if (logging is null)
+            return;
+
+        var deleted = await logging.DeleteActivityOlderThanAsync(DateTimeOffset.UtcNow.AddDays(-30), ct);
+        _lastActivityCleanupDate = today;
+        if (deleted > 0)
+            _logger.LogInformation("Deleted {Count} expired scraper activity event(s)", deleted);
     }
 }

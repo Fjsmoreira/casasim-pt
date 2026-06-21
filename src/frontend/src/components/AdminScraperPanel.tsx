@@ -5,6 +5,8 @@ import type {
   AdminScraperSource,
   ScrapeListingChange,
   ScrapeListingChangesResponse,
+  ScrapeRunActivity,
+  ScrapeRunActivityResponse,
   ScraperRunDetail,
   ScraperRunsResponse,
   ScraperRunSummary,
@@ -55,6 +57,14 @@ function actionClass(action: string): string {
   }
 }
 
+function activityClass(level: ScrapeRunActivity['level']): string {
+  switch (level) {
+    case 'Error': return 'bg-red-100 text-red-700'
+    case 'Warning': return 'bg-amber-100 text-amber-800'
+    default: return 'bg-blue-100 text-blue-800'
+  }
+}
+
 function parseDiff(change: ScrapeListingChange): FieldDiff {
   if (!change.changeSummaryJson) return {}
 
@@ -80,6 +90,7 @@ export default function AdminScraperPanel({ onAuthExpired }: AdminScraperPanelPr
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null)
   const [selectedRun, setSelectedRun] = useState<ScraperRunDetail | null>(null)
   const [changes, setChanges] = useState<ScrapeListingChangesResponse | null>(null)
+  const [activities, setActivities] = useState<ScrapeRunActivity[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [runsPage, setRunsPage] = useState(1)
@@ -89,6 +100,13 @@ export default function AdminScraperPanel({ onAuthExpired }: AdminScraperPanelPr
   const selectedRunSummary = useMemo(
     () => runs?.items.find((run) => run.id === selectedRunId) ?? null,
     [runs, selectedRunId],
+  )
+
+  const activeRuns = useMemo(
+    () => sources.flatMap((source) => source.latestRun?.status === 'Started'
+      ? [{ source, run: source.latestRun }]
+      : []),
+    [sources],
   )
 
   const handleError = useCallback((err: unknown, fallback: string) => {
@@ -130,6 +148,7 @@ export default function AdminScraperPanel({ onAuthExpired }: AdminScraperPanelPr
     if (!selectedRunId) {
       setSelectedRun(null)
       setChanges(null)
+      setActivities([])
       return
     }
 
@@ -137,13 +156,15 @@ export default function AdminScraperPanel({ onAuthExpired }: AdminScraperPanelPr
     async function fetchRunDetails() {
       setError('')
       try {
-        const [runRes, changesRes] = await Promise.all([
+        const [runRes, changesRes, activityRes] = await Promise.all([
           apiClient.get<ScraperRunDetail>(`/admin/scrape-runs/${selectedRunId}`),
           apiClient.get<ScrapeListingChangesResponse>(`/admin/scrape-runs/${selectedRunId}/changes?pageSize=100`),
+          apiClient.get<ScrapeRunActivityResponse>(`/admin/scrape-runs/${selectedRunId}/activity?limit=100`),
         ])
         if (!cancelled) {
           setSelectedRun(runRes.data)
           setChanges(changesRes.data)
+          setActivities(activityRes.data.items)
         }
       } catch (err) {
         if (!cancelled) handleError(err, 'Erro ao carregar detalhes da execução.')
@@ -155,6 +176,29 @@ export default function AdminScraperPanel({ onAuthExpired }: AdminScraperPanelPr
       cancelled = true
     }
   }, [selectedRunId, handleError])
+
+  useEffect(() => {
+    if (!selectedRunId) return
+
+    const refreshLiveActivity = async () => {
+      if (document.visibilityState === 'hidden') return
+      try {
+        const [sourcesRes, runsRes, activityRes] = await Promise.all([
+          apiClient.get<AdminScraperSource[]>('/admin/scraper-sources'),
+          apiClient.get<ScraperRunsResponse>(`/admin/scrape-runs?page=${runsPage}&pageSize=20`),
+          apiClient.get<ScrapeRunActivityResponse>(`/admin/scrape-runs/${selectedRunId}/activity?limit=100`),
+        ])
+        setSources(sourcesRes.data)
+        setRuns(runsRes.data)
+        setActivities(activityRes.data.items)
+      } catch {
+        // A transient background refresh must not replace the current operator view.
+      }
+    }
+
+    const timer = window.setInterval(refreshLiveActivity, 5_000)
+    return () => window.clearInterval(timer)
+  }, [selectedRunId, runsPage])
 
   async function toggleSource(source: AdminScraperSource) {
     setSavingSourceId(source.id)
@@ -203,6 +247,34 @@ export default function AdminScraperPanel({ onAuthExpired }: AdminScraperPanelPr
           Actualizar
         </button>
       </div>
+
+      {(activeRuns.length > 0 || sources.some((source) => source.manualRunRequestedAt)) && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <h2 className="text-sm font-semibold text-blue-900">Em execução agora</h2>
+          <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
+            {activeRuns.map(({ source, run }) => (
+              <button
+                key={run.id}
+                onClick={() => setSelectedRunId(run.id)}
+                className="text-left bg-white border border-blue-100 rounded-md p-3 hover:border-blue-300"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-medium text-gray-900">{source.name}</span>
+                  <span className="text-xs font-medium text-blue-800">{run.currentPhase ?? 'a iniciar'}</span>
+                </div>
+                <div className="mt-1 text-xs text-gray-600">Iniciado {formatDate(run.startedAt)} · {run.listingsFound} encontrados</div>
+                {run.lastActivityAt && <div className="mt-1 text-xs text-gray-500">Última atividade {formatDate(run.lastActivityAt)}</div>}
+              </button>
+            ))}
+            {sources.filter((source) => source.manualRunRequestedAt).map((source) => (
+              <div key={source.id} className="bg-white border border-blue-100 rounded-md p-3">
+                <div className="font-medium text-gray-900">{source.name}</div>
+                <div className="mt-1 text-xs text-blue-800">Na fila para execução manual</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
@@ -339,13 +411,37 @@ export default function AdminScraperPanel({ onAuthExpired }: AdminScraperPanelPr
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
           <div className="px-4 py-3 border-b border-gray-200">
             <h2 className="text-sm font-semibold text-gray-900">
-              {selectedRunSummary ? `Alteracoes: ${selectedRunSummary.sourceName}` : 'Alteracoes'}
+              {selectedRunSummary ? `Atividade: ${selectedRunSummary.sourceName}` : 'Atividade'}
             </h2>
             {selectedRun && (
               <div className="mt-1 text-xs text-gray-500">
                 {selectedRun.sourceTargetDescription ?? selectedRun.sourceUrl ?? 'Sem descricao da fonte'}
               </div>
             )}
+          </div>
+
+          <div className="divide-y divide-gray-100">
+            {activities.length === 0 && (
+              <p className="px-4 py-5 text-sm text-gray-500">Ainda não há atividade registada para esta execução.</p>
+            )}
+            {activities.map((activity) => (
+              <div key={activity.id} className="px-4 py-3 flex gap-3">
+                <span className={`mt-0.5 inline-flex h-fit px-2 py-0.5 rounded-full text-xs font-medium ${activityClass(activity.level)}`}>
+                  {activity.phase}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm text-gray-800">{activity.message}</p>
+                  <p className="mt-1 text-xs text-gray-500">
+                    {formatDate(activity.createdAt)}
+                    {activity.totalCount !== null && ` · ${activity.currentCount ?? 0}/${activity.totalCount}`}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="px-4 py-3 border-y border-gray-200 bg-gray-50">
+            <h3 className="text-sm font-semibold text-gray-900">Alterações às listagens</h3>
           </div>
 
           <div className="overflow-x-auto">

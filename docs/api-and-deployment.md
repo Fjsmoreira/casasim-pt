@@ -24,6 +24,8 @@ All routes are mounted under `/api`.
 | Admin | `GET /api/admin/listings` | Admin listing table with pagination and filters; requires API key. |
 | Admin | `GET /api/admin/agencies` | Agency list for admin filters; requires API key. |
 | Admin | `GET /api/admin/scraper-status` | Latest scrape run/status summary; requires API key. |
+| Admin | `GET /api/admin/scrape-runs/active` | Currently running scraper runs; requires API key. |
+| Admin | `GET /api/admin/scrape-runs/{id}/activity` | Operator-facing run milestones, optionally after a timestamp; requires API key. |
 
 Swagger is registered only in development (`ASPNETCORE_ENVIRONMENT=Development`) and should not be expected on production routes.
 
@@ -61,6 +63,8 @@ AdminSettings__ApiKey=strong-random-admin-api-key
 `docker-compose.yml` currently defaults the database name to `casasim` for the API and scraper connection strings. Keep the database service, API service, and scraper service aligned if you change the database name.
 
 ## Docker/Coolify service model
+
+The Compose stack includes a one-shot `migrate` service. It runs the EF Core migration bundle after PostgreSQL is healthy; the API and scraper wait for it to finish successfully. It is run on every deploy and exits without changes when no migrations are pending. Do not move migrations into normal API startup.
 
 `docker-compose.yml` defines four services:
 

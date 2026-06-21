@@ -49,6 +49,8 @@ public sealed class ScrapeLoggingService
         _db.ScrapeLogs.Add(log);
         await _db.SaveChangesAsync(ct);
 
+        await RecordActivityAsync(log.Id, "starting", "Scraper run started.", ct: ct);
+
         _logger.LogDebug("Created scrape log {LogId} for '{Source}'", log.Id, sourceName);
         return log.Id;
     }
@@ -74,6 +76,7 @@ public sealed class ScrapeLoggingService
 
         log.Status = ScrapeStatus.Succeeded;
         log.CompletedAt = DateTimeOffset.UtcNow;
+        log.CurrentPhase = "completed";
         log.ListingsFound = listingsFound;
         log.ListingsCreated = listingsCreated;
         log.ListingsUpdated = listingsUpdated;
@@ -82,6 +85,13 @@ public sealed class ScrapeLoggingService
         log.LastSeenAt = DateTimeOffset.UtcNow;
 
         await _db.SaveChangesAsync(ct);
+
+        await RecordActivityAsync(
+            logId,
+            "completed",
+            $"Run completed: {listingsFound} found, {listingsCreated} created, {listingsUpdated} updated, {listingsRemoved} removed.",
+            currentCount: listingsFound,
+            ct: ct);
 
         _logger.LogInformation(
             "Scrape log {LogId} completed: found={Found} created={Created} updated={Updated} removed={Removed}",
@@ -106,12 +116,15 @@ public sealed class ScrapeLoggingService
 
         log.Status = ScrapeStatus.Failed;
         log.CompletedAt = DateTimeOffset.UtcNow;
+        log.CurrentPhase = "failed";
         log.ErrorMessage = errorMessage;
         log.ErrorDetails = errorDetails;
         log.UpdatedAt = DateTimeOffset.UtcNow;
         log.LastSeenAt = DateTimeOffset.UtcNow;
 
         await _db.SaveChangesAsync(ct);
+
+        await RecordActivityAsync(logId, "failed", errorMessage, ScrapeActivityLevel.Error, ct: ct);
 
         _logger.LogError("Scrape log {LogId} failed: {Message}", logId, errorMessage);
     }
@@ -125,5 +138,52 @@ public sealed class ScrapeLoggingService
             .AsNoTracking()
             .FirstOrDefaultAsync(a => a.Slug == slug, ct);
         return agency?.Id;
+    }
+
+    public async Task RecordActivityAsync(
+        Guid logId,
+        string phase,
+        string message,
+        ScrapeActivityLevel level = ScrapeActivityLevel.Information,
+        int? currentCount = null,
+        int? totalCount = null,
+        CancellationToken ct = default)
+    {
+        var now = DateTimeOffset.UtcNow;
+        _db.ScrapeRunActivities.Add(new ScrapeRunActivity
+        {
+            Id = Guid.NewGuid(),
+            ScrapeLogId = logId,
+            Phase = phase,
+            Message = message,
+            Level = level,
+            CurrentCount = currentCount,
+            TotalCount = totalCount,
+            CreatedAt = now,
+        });
+
+        var log = await _db.ScrapeLogs.FindAsync(new object[] { logId }, ct);
+        if (log is not null)
+        {
+            log.CurrentPhase = phase;
+            log.LastActivityAt = now;
+            log.UpdatedAt = now;
+        }
+
+        await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task<int> DeleteActivityOlderThanAsync(DateTimeOffset cutoff, CancellationToken ct = default)
+    {
+        var expired = await _db.ScrapeRunActivities
+            .Where(activity => activity.CreatedAt < cutoff)
+            .ToListAsync(ct);
+
+        if (expired.Count == 0)
+            return 0;
+
+        _db.ScrapeRunActivities.RemoveRange(expired);
+        await _db.SaveChangesAsync(ct);
+        return expired.Count;
     }
 }

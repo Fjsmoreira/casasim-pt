@@ -159,4 +159,48 @@ public sealed class ScrapeLoggingServiceTests
 
         Assert.Null(id);
     }
+
+    [Fact]
+    public async Task RecordActivity_UpdatesRunAndPersistsOperatorEvent()
+    {
+        using var db = CreateDb();
+        var service = CreateService(db);
+        var logId = await service.StartLogAsync("Remax", null, null);
+
+        await service.RecordActivityAsync(
+            logId,
+            "upserting",
+            "Upserting 12 listing(s).",
+            currentCount: 0,
+            totalCount: 12);
+
+        var log = await db.ScrapeLogs.FindAsync(logId);
+        var activity = await db.ScrapeRunActivities.SingleAsync(a => a.ScrapeLogId == logId && a.Phase == "upserting");
+        Assert.Equal("upserting", log!.CurrentPhase);
+        Assert.NotNull(log.LastActivityAt);
+        Assert.Equal("Upserting 12 listing(s).", activity.Message);
+        Assert.Equal(12, activity.TotalCount);
+    }
+
+    [Fact]
+    public async Task DeleteActivityOlderThan_RemovesOnlyExpiredEvents()
+    {
+        using var db = CreateDb();
+        var service = CreateService(db);
+        var logId = await service.StartLogAsync("Remax", null, null);
+        db.ScrapeRunActivities.Add(new ScrapeRunActivity
+        {
+            ScrapeLogId = logId,
+            Phase = "old",
+            Message = "Expired event",
+            CreatedAt = DateTimeOffset.UtcNow.AddDays(-31),
+        });
+        await db.SaveChangesAsync();
+
+        var deleted = await service.DeleteActivityOlderThanAsync(DateTimeOffset.UtcNow.AddDays(-30));
+
+        Assert.Equal(1, deleted);
+        Assert.DoesNotContain(db.ScrapeRunActivities, activity => activity.Phase == "old");
+        Assert.Contains(db.ScrapeRunActivities, activity => activity.Phase == "starting");
+    }
 }

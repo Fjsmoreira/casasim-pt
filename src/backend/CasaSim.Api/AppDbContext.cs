@@ -14,6 +14,7 @@ public sealed class AppDbContext : DbContext
     public DbSet<ScrapeLog> ScrapeLogs => Set<ScrapeLog>();
     public DbSet<ScraperSource> ScraperSources => Set<ScraperSource>();
     public DbSet<ScrapeListingChange> ScrapeListingChanges => Set<ScrapeListingChange>();
+    public DbSet<ScrapeRunActivity> ScrapeRunActivities => Set<ScrapeRunActivity>();
 
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
@@ -29,6 +30,7 @@ public sealed class AppDbContext : DbContext
         ConfigureScrapeLog(modelBuilder.Entity<ScrapeLog>());
         ConfigureScraperSource(modelBuilder.Entity<ScraperSource>());
         ConfigureScrapeListingChange(modelBuilder.Entity<ScrapeListingChange>());
+        ConfigureScrapeRunActivity(modelBuilder.Entity<ScrapeRunActivity>());
     }
 
     private static void ConfigureAgency(EntityTypeBuilder<Agency> entity)
@@ -271,6 +273,9 @@ public sealed class AppDbContext : DbContext
         entity.Property(e => e.ErrorMessage)
               .HasMaxLength(2000);
 
+        entity.Property(e => e.CurrentPhase)
+              .HasMaxLength(100);
+
         entity.HasOne(e => e.Agency)
               .WithMany(a => a.ScrapeLogs)
               .HasForeignKey(e => e.AgencyId)
@@ -396,6 +401,32 @@ public sealed class AppDbContext : DbContext
 
         entity.HasIndex(e => e.ScrapeLogId);
         entity.HasIndex(e => e.Action);
+        entity.HasIndex(e => e.CreatedAt);
+    }
+
+    private static void ConfigureScrapeRunActivity(EntityTypeBuilder<ScrapeRunActivity> entity)
+    {
+        entity.ToTable("scrape_run_activity");
+        entity.HasKey(e => e.Id);
+
+        entity.Property(e => e.Level)
+              .HasConversion<string>()
+              .HasMaxLength(20);
+
+        entity.Property(e => e.Phase)
+              .HasMaxLength(100)
+              .IsRequired();
+
+        entity.Property(e => e.Message)
+              .HasMaxLength(2000)
+              .IsRequired();
+
+        entity.HasOne(e => e.ScrapeLog)
+              .WithMany(e => e.Activities)
+              .HasForeignKey(e => e.ScrapeLogId)
+              .OnDelete(DeleteBehavior.Cascade);
+
+        entity.HasIndex(e => new { e.ScrapeLogId, e.CreatedAt });
         entity.HasIndex(e => e.CreatedAt);
     }
 }

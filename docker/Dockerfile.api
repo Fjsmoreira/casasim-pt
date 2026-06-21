@@ -6,11 +6,14 @@ RUN dotnet restore src/backend/CasaSim.Api/CasaSim.Api.csproj
 COPY . .
 WORKDIR /src/src/backend/CasaSim.Api
 RUN dotnet publish -c Release -o /app
+RUN dotnet tool install --tool-path /tools dotnet-ef --version "10.*"
+RUN /tools/dotnet-ef migrations bundle --output /app/efbundle --force
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 RUN apt-get update && apt-get install -y curl --no-install-recommends && rm -rf /var/lib/apt/lists/*
 COPY --from=build /app .
+RUN chmod +x /app/efbundle
 EXPOSE 5000
 ENV ASPNETCORE_URLS=http://+:5000
 ENTRYPOINT ["dotnet", "CasaSim.Api.dll"]

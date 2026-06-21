@@ -240,11 +240,31 @@ export interface ScraperRunSummary {
   listingsUpdated: number
   listingsRemoved: number
   errorMessage: string | null
+  currentPhase: string | null
+  lastActivityAt: string | null
 }
 
 export interface ScraperRunDetail extends ScraperRunSummary {
   sourceTargetDescription: string | null
   errorDetails: string | null
+}
+
+export interface ScrapeRunActivity {
+  id: string
+  level: 'Information' | 'Warning' | 'Error'
+  phase: string
+  message: string
+  currentCount: number | null
+  totalCount: number | null
+  createdAt: string
+}
+
+export interface ScrapeRunActivityResponse {
+  items: ScrapeRunActivity[]
+  page: number
+  pageSize: number
+  totalCount: number
+  totalPages: number
 }
 
 export interface ScrapeListingChange {
