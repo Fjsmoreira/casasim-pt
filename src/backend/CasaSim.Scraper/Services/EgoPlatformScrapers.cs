@@ -4,6 +4,7 @@ using CasaSim.Core.Interfaces;
 using CasaSim.Core.Models;
 using HtmlAgilityPack;
 using Microsoft.Extensions.Logging;
+using Microsoft.Playwright;
 
 namespace CasaSim.Scraper.Services;
 
@@ -11,10 +12,13 @@ namespace CasaSim.Scraper.Services;
 /// Scraper for eGO Real Estate platform sites.
 /// eGO is a common Portuguese real estate website CMS.
 /// 
-/// Since eGO's listing pages are JavaScript-rendered SPAs, we use the XML sitemap
-/// (sitemap-pt-pt.xml) to discover individual property URLs, then attempt to scrape
-/// detail pages. Detail pages may also be partially JS-rendered; if parsing fails,
-/// we fall back to minimal data from the URL/sitemap.
+/// eGO listing pages are JavaScript-rendered SPAs with zero property links
+/// in static HTML. Sitemaps contain only navigation pages — no property URLs.
+/// The eGO API (websiteapi.egorealestate.com) requires authenticated sessions
+/// and blocks non-browser access.
+///
+/// This scraper uses Playwright (headless Chromium) to load listing pages
+/// with JS execution, then extracts property links from the rendered DOM.
 ///
 /// Sites using this: imopombal.pt, lionscastles.pt, habifit.pt, cosyimobiliaria.pt
 /// </summary>
@@ -69,21 +73,34 @@ internal sealed class CosyImobiliariaScraper : IPropertyScraper
 
 internal static class EgoSitemapScraper
 {
+    private static IBrowser? _sharedBrowser;
+    private static readonly SemaphoreSlim _browserLock = new(1, 1);
+
     public static async Task<IReadOnlyList<Property>> ScrapeAsync(
         string baseUrl, string agencyName, HttpClient http, ILogger logger, CancellationToken ct)
     {
         var results = new List<Property>();
         try
         {
-            // Step 1: Discover property URLs from sitemap
-            var urls = await DiscoverFromSitemapAsync(baseUrl, http, logger, ct);
-            logger.LogInformation("{Agency}: sitemap found {Count} property URLs", agencyName, urls.Count);
-
+            // Step 1: Discover property URLs
+            // Try Playwright first (JS-rendered listing pages), fall back to sitemap/listing HTML
+            var urls = await DiscoverViaPlaywrightAsync(baseUrl, agencyName, logger, ct);
+            
             if (urls.Count == 0)
             {
-                // Fallback: try listing page scraping
-                urls = await DiscoverFromListingPageAsync(baseUrl, http, logger, ct);
-                logger.LogInformation("{Agency}: listing page fallback found {Count} URLs", agencyName, urls.Count);
+                logger.LogInformation("{Agency}: Playwright discovery found 0 URLs, trying fallback", agencyName);
+                urls = await DiscoverFromSitemapAsync(baseUrl, http, logger, ct);
+                logger.LogInformation("{Agency}: sitemap fallback found {Count} property URLs", agencyName, urls.Count);
+
+                if (urls.Count == 0)
+                {
+                    urls = await DiscoverFromListingPageAsync(baseUrl, http, logger, ct);
+                    logger.LogInformation("{Agency}: listing page fallback found {Count} URLs", agencyName, urls.Count);
+                }
+            }
+            else
+            {
+                logger.LogInformation("{Agency}: Playwright found {Count} property URLs", agencyName, urls.Count);
             }
 
             // Step 2: Scrape each detail page
@@ -109,6 +126,186 @@ internal static class EgoSitemapScraper
         logger.LogInformation("{Agency}: scraped {Count} properties", agencyName, results.Count);
         return results;
     }
+
+    /// <summary>
+    /// Discover property URLs using Playwright headless browser.
+    /// Loads the listing page with JavaScript execution, waits for property
+    /// cards to render, then extracts property detail page URLs.
+    /// </summary>
+    private static async Task<List<(string Url, string Slug, string NumericId)>> DiscoverViaPlaywrightAsync(
+        string baseUrl, string agencyName, ILogger logger, CancellationToken ct)
+    {
+        var results = new List<(string Url, string Slug, string NumericId)>();
+        
+        // Listing pages to try (some sites use /imoveis, others may use different paths)
+        var listingPaths = new[] { "/imoveis", "/properties", "/inmuebles", "/biens-immobiliers" };
+
+        try
+        {
+            var browser = await GetSharedBrowserAsync();
+            var context = await browser.NewContextAsync(new BrowserNewContextOptions
+            {
+                UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36",
+                ViewportSize = new ViewportSize { Width = 1920, Height = 1080 },
+                JavaScriptEnabled = true
+            });
+
+            try
+            {
+                foreach (var listingPath in listingPaths)
+                {
+                    if (ct.IsCancellationRequested) break;
+                    if (results.Count > 0) break; // got URLs from a previous path
+
+                    var page = await context.NewPageAsync();
+                    try
+                    {
+                        var listingUrl = $"{baseUrl}{listingPath}";
+                        logger.LogDebug("{Agency}: Playwright loading {Url}", agencyName, listingUrl);
+
+                        // Navigate and wait for DOM content
+                        var resp = await page.GotoAsync(listingUrl, new PageGotoOptions
+                        {
+                            WaitUntil = WaitUntilState.DOMContentLoaded,
+                            Timeout = 20_000
+                        });
+
+                        if (resp is null || resp.Status is < 200 or >= 400)
+                        {
+                            logger.LogDebug("{Agency}: Playwright got status {Status} for {Url}",
+                                agencyName, resp?.Status, listingUrl);
+                            continue;
+                        }
+
+                        // Wait for property cards to render (EGO uses .DataView container)
+                        try
+                        {
+                            await page.WaitForSelectorAsync(".DataView", new PageWaitForSelectorOptions
+                            {
+                                Timeout = 20_000
+                            });
+                        }
+                        catch (TimeoutException)
+                        {
+                            logger.LogDebug("{Agency}: Playwright .DataView timeout on {Url}, trying any content",
+                                agencyName, listingUrl);
+                        }
+
+                        // Extra wait for JavaScript data loading (EGO fetches from API)
+                        await Task.Delay(5_000, ct);
+
+                        // Extract property URLs from the rendered DOM
+                        // EGO property detail URLs typically look like:
+                        //   /imovel/<slug>/<numeric-id>
+                        //   /pt-pt/imovel/<slug>/<numeric-id>  
+                        var urls = await page.EvaluateAsync<string[]>(
+                            @"() => {
+                                const links = document.querySelectorAll('a[href]');
+                                const patterns = [/\/imovel\//i, /\/property\//i, /\/propriedade\//i];
+                                const results = [];
+                                for (const a of links) {
+                                    for (const p of patterns) {
+                                        if (p.test(a.href)) {
+                                            results.push(a.href);
+                                            break;
+                                        }
+                                    }
+                                }
+                                return [...new Set(results)];
+                            }");
+
+                        // Parse URLs into (url, slug, numericId) tuples
+                        foreach (var url in urls)
+                        {
+                            if (ct.IsCancellationRequested) break;
+                            var parsed = ParseEgoPropertyUrl(url);
+                            if (parsed is not null && !results.Any(r => r.NumericId == parsed.Value.NumericId))
+                                results.Add(parsed.Value);
+                        }
+
+                        logger.LogDebug("{Agency}: Playwright {Path} → {Count} property URLs",
+                            agencyName, listingPath, results.Count);
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogDebug(ex, "{Agency}: Playwright failed on {Path}", agencyName, listingPath);
+                    }
+                    finally
+                    {
+                        await page.CloseAsync();
+                    }
+                }
+            }
+            finally
+            {
+                // Close context but keep browser for reuse
+                await context.CloseAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            // Playwright not installed or browser launch failed — fall back to sitemap/HTML
+            logger.LogDebug(ex, "{Agency}: Playwright unavailable, falling back to sitemap/HTML discovery",
+                agencyName);
+        }
+
+        return results;
+    }
+
+    /// <summary>
+    /// Parse an eGO property detail URL into (url, slug, numericId).
+    /// Expected format: /imovel/<slug>/<numeric-id> or /pt-pt/imovel/<slug>/<numeric-id>
+    /// </summary>
+    private static (string Url, string Slug, string NumericId)? ParseEgoPropertyUrl(string url)
+    {
+        // Match: /imovel/<slug>/<numeric-id>
+        var match = Regex.Match(url,
+            @"(?<base>https?://[^/]+)(?:/[a-z]{2}-[a-z]{2})?/imovel/(?<slug>[^/]+)/(?<id>\d+)",
+            RegexOptions.IgnoreCase);
+        
+        if (!match.Success)
+        {
+            // Try alternate pattern: /property/<slug>-<id> or /property/<id>
+            match = Regex.Match(url,
+                @"(?<base>https?://[^/]+)/property/(?<slug>[^/]+)-(?<id>\d+)$",
+                RegexOptions.IgnoreCase);
+        }
+
+        if (match.Success)
+            return (match.Value, match.Groups["slug"].Value, match.Groups["id"].Value);
+
+        return null;
+    }
+
+    /// <summary>
+    /// Get or create a shared Playwright browser instance.
+    /// Reusing the browser across scrapers avoids cold-start overhead.
+    /// </summary>
+    private static async Task<IBrowser> GetSharedBrowserAsync()
+    {
+        if (_sharedBrowser?.IsConnected == true) return _sharedBrowser;
+
+        await _browserLock.WaitAsync();
+        try
+        {
+            if (_sharedBrowser?.IsConnected == true) return _sharedBrowser;
+
+            var playwright = await Playwright.CreateAsync();
+            _sharedBrowser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+            {
+                Headless = true,
+                Args = new[] { "--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage" }
+            });
+
+            return _sharedBrowser;
+        }
+        finally
+        {
+            _browserLock.Release();
+        }
+    }
+
+    // ── Fallback discovery methods (unchanged from original) ────────
 
     private static async Task<List<(string Url, string Slug, string NumericId)>> DiscoverFromSitemapAsync(
         string baseUrl, HttpClient http, ILogger logger, CancellationToken ct)

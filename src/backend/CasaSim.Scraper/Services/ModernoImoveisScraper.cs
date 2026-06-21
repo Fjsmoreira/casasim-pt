@@ -61,7 +61,10 @@ internal sealed class ModernoImoveisScraper : IPropertyScraper
     {
         var urls = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        // Check listing pages: /comprar/, /arrendar/
+        // ── Source 1: WordPress sitemap (most reliable, catches all posts) ──
+        await DiscoverFromWpSitemapAsync(urls, ct);
+
+        // ── Source 2: Listing pages /comprar/, /arrendar/ (catch new posts not yet in sitemap) ──
         foreach (var listingPath in new[] { "/comprar/", "/arrendar/" })
         {
             try
@@ -92,12 +95,14 @@ internal sealed class ModernoImoveisScraper : IPropertyScraper
                         path == "/politica" || path == "/1o-layout" || path == "/2o-layout")
                         continue;
 
-                    // Should be a property page: /something-with-hyphens/
-                    if (path.Count(c => c == '/') <= 1 && path.Length > 10)
+                    // Property URLs like /moradia-t4-ilha-pombal/ have 2 slashes (leading + trailing).
+                    // Non-property nav links typically have exactly 1 slash (like /comprar/, /vender/).
+                    if (path.Count(c => c == '/') <= 2 && path.Length > 10)
                         urls.Add(href);
                 }
 
-                _logger.LogDebug("{Agency}: {Path} → {Count} URLs", AgencyName, listingPath, urls.Count);
+                _logger.LogDebug("{Agency}: {Path} → {Count} URLs", AgencyName, listingPath,
+                    urls.Count(u => u.Contains(listingPath, StringComparison.OrdinalIgnoreCase)));
             }
             catch (Exception ex)
             {
@@ -105,6 +110,65 @@ internal sealed class ModernoImoveisScraper : IPropertyScraper
             }
         }
         return urls;
+    }
+
+    /// <summary>
+    /// Discover property URLs from WordPress sitemap (wp-sitemap.xml → post sitemaps).
+    /// More reliable than scraping listing pages and catches all posts.
+    /// </summary>
+    private async Task DiscoverFromWpSitemapAsync(HashSet<string> urls, CancellationToken ct)
+    {
+        try
+        {
+            // Fetch sitemap index
+            var indexXml = await _http.GetStringAsync($"{BaseUrl}/wp-sitemap.xml", ct);
+            // Parse post sitemap URLs from index (e.g. wp-sitemap-posts-post-1.xml)
+            var postSitemapMatches = Regex.Matches(indexXml,
+                @"<loc>\s*(https?://[^<]*/wp-sitemap-posts-post-\d+\.xml)\s*</loc>",
+                RegexOptions.IgnoreCase);
+
+            foreach (Match sm in postSitemapMatches)
+            {
+                if (ct.IsCancellationRequested) break;
+                try
+                {
+                    var sitemapUrl = sm.Groups[1].Value;
+                    var sitemapXml = await _http.GetStringAsync(sitemapUrl, ct);
+
+                    // Extract all post URLs from the sitemap
+                    var urlMatches = Regex.Matches(sitemapXml,
+                        @$"<loc>\s*({Regex.Escape(BaseUrl)}/(?!wp-)[^<]+)\s*</loc>",
+                        RegexOptions.IgnoreCase);
+
+                    foreach (Match um in urlMatches)
+                    {
+                        var url = um.Groups[1].Value;
+                        var path = url[BaseUrl.Length..];
+
+                        // Skip known non-property pages
+                        if (path is "/" or "/comprar/" or "/arrendar/" or "/vender/" or
+                            "/contactos/" or "/servicos/" or "/remodelacao/" or "/termos/" or
+                            "/politica/" or "/escritorio/" or "/gestao-de-arrendamento/")
+                            continue;
+
+                        urls.Add(url);
+                    }
+
+                    _logger.LogDebug("{Agency}: sitemap {SitemapUrl} → {Count} URLs",
+                        AgencyName, sitemapUrl, urlMatches.Count);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "{Agency}: failed to process sitemap {SitemapUrl}",
+                        AgencyName, sm.Groups[1].Value);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "{Agency}: wp-sitemap discovery failed, falling back to listing pages",
+                AgencyName);
+        }
     }
 
     private async Task<Property?> ScrapeDetailAsync(string url, CancellationToken ct)
