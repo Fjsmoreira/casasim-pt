@@ -183,12 +183,45 @@ internal static class Crm360Parser
         var areaM2 = ExtractDoubleFromDesc(description);
         var landAreaM2 = ExtractDouble(description, @"(?:terreno|lote).*?(\d[\d\s\.,]*)\s*m²");
 
+        // ── Location from page ──────────────────────────────────
+        // CRM360 pages have structured location data in .another_details divs:
+        //   <div class="another_details">Distrito: Leiria</div>
+        //   <div class="another_details">Concelho: Pombal</div>
+        //   <div class="another_details">Freguesia: Vermoil</div>
+        var city = "Pombal";
+        var district = "Leiria";
+        var anotherDetailNodes = doc.DocumentNode.SelectNodes("//div[contains(@class, 'another_details')]");
+        if (anotherDetailNodes is not null)
+        {
+            foreach (var detail in anotherDetailNodes)
+            {
+                var text = detail.InnerText.Trim();
+                if (text.StartsWith("Concelho:", StringComparison.OrdinalIgnoreCase))
+                    city = text["Concelho:".Length..].Trim();
+                else if (text.StartsWith("Distrito:", StringComparison.OrdinalIgnoreCase))
+                    district = text["Distrito:".Length..].Trim();
+            }
+        }
+        // Fallback: try meta keywords (format: "Moradia, Usado, Leiria, Pombal")
+        if (city == "Pombal" && district == "Leiria")
+        {
+            var metaKeywords = doc.DocumentNode.SelectSingleNode("//meta[@name='keywords']");
+            var kwContent = metaKeywords?.GetAttributeValue("content", "") ?? "";
+            var kwParts = kwContent.Split(',').Select(p => p.Trim()).ToArray();
+            if (kwParts.Length >= 4)
+            {
+                district = kwParts[^2];
+                city = kwParts[^1];
+            }
+        }
         // ── Property type ──────────────────────────────────────
         var propType = DetectPropertyType(title, description);
 
-        // ── Images ─────────────────────────────────────────────
+        // CRM360 pages often include the agency logo (images.crm360.pt/users/.../website/...)
+        // and consultant photos (/users/.../imagens/...) before property photos.
+        // Property photos live under images.crm360.pt/imoveis/{shortcode}/...
         var images = new List<string>();
-        var imgNodes = doc.DocumentNode.SelectNodes("//img[contains(@src, 'crm360') or contains(@src, 'imov')]");
+        var imgNodes = doc.DocumentNode.SelectNodes("//img[contains(@src, 'crm360') and contains(@src, '/imoveis/')]");
         if (imgNodes is not null)
         {
             foreach (var img in imgNodes)
@@ -197,7 +230,8 @@ internal static class Crm360Parser
                 if (!string.IsNullOrEmpty(src))
                 {
                     if (!src.StartsWith("http")) src = baseUrl.TrimEnd('/') + (src.StartsWith("/") ? "" : "/") + src;
-                    if (src.Contains("crm360.pt") || src.Contains("/Imovel/") || src.Contains("/imov"))
+                    // Only keep property photos, skip logos/consultant images
+                    if (!src.Contains("/users/") && !src.Contains("/website/") && !src.Contains("/imagens/"))
                         images.Add(src);
                 }
             }
@@ -213,8 +247,8 @@ internal static class Crm360Parser
             Currency = "EUR",
             Type = propType,
             Transaction = transType,
-            City = "Pombal",
-            District = "Leiria",
+            City = city,
+            District = district,
             AreaM2 = areaM2,
             LandAreaM2 = landAreaM2,
             Bedrooms = bedrooms,
