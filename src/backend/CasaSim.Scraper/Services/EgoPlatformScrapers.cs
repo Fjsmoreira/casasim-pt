@@ -445,10 +445,10 @@ internal static class EgoSitemapScraper
                 {
                     var srcset = source.GetAttributeValue("srcset", "");
                     var src = source.GetAttributeValue("src", "");
-                    var url = !string.IsNullOrWhiteSpace(srcset) ? srcset.Split(',')[0].Trim().Split(' ')[0] : src;
-                    if (string.IsNullOrWhiteSpace(url)) continue;
-                    if (!url.StartsWith("http")) url = "https:" + (url.StartsWith("//") ? "" : "//") + url;
-                    if (!images.Contains(url)) images.Add(url);
+                    var imgUrl = !string.IsNullOrWhiteSpace(srcset) ? srcset.Split(',')[0].Trim().Split(' ')[0] : src;
+                    if (string.IsNullOrWhiteSpace(imgUrl)) continue;
+                    if (!imgUrl.StartsWith("http")) imgUrl = "https:" + (imgUrl.StartsWith("//") ? "" : "//") + imgUrl;
+                    if (!images.Contains(imgUrl)) images.Add(imgUrl);
                 }
             }
 
