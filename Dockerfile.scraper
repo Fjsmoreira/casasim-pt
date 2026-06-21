@@ -1,3 +1,4 @@
+# cache-bust: 1782033959
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 COPY src/backend/CasaSim.Core/CasaSim.Core.csproj src/backend/CasaSim.Core/
@@ -26,4 +27,3 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 ENV DOTNET_ENVIRONMENT=Production
 ENTRYPOINT ["dotnet", "CasaSim.Scraper.dll"]
-# cache-bust: 1782033951
