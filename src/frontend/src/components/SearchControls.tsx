@@ -92,16 +92,17 @@ export default function SearchControls() {
 
   return <>
     <section className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 py-3 shadow-sm backdrop-blur" aria-label="Pesquisa de imóveis">
-      <div className="mx-auto flex max-w-2xl px-4 sm:px-6">
+      <div className="mx-auto max-w-4xl px-4 sm:px-6">
         <label className="sr-only" htmlFor="locality">Localidade</label>
-        <div className="flex"><input id="locality" list="pombal-localities" value={store.locality ?? ''} onChange={(e) => store.setLocality(e.target.value || undefined)} placeholder="Localidade, bairro ou código postal" className={inputClass + ' rounded-r-none'} /><button type="button" aria-label="Pesquisar" className="grid h-10 w-11 shrink-0 place-items-center rounded-r bg-[#f7a21b] text-white hover:bg-amber-600"><Search className="size-4" /></button></div>
+        <div className="flex"><input id="locality" list="pombal-localities" value={store.locality ?? ''} onChange={(e) => store.setLocality(e.target.value || undefined)} placeholder="Pesquisar por localidade, bairro ou código postal" className={inputClass + ' rounded-r-none'} /><button type="button" aria-label="Pesquisar" className="grid h-10 w-11 shrink-0 place-items-center rounded-r bg-[#f7a21b] text-white hover:bg-amber-600"><Search className="size-4" /></button></div>
         <datalist id="pombal-localities">{LOCALITIES.map((locality) => <option key={locality} value={locality} />)}</datalist>
       </div>
-      <div className="mx-auto mt-3 flex max-w-4xl flex-wrap items-center justify-center gap-2 px-4 sm:px-6">
-        <div className="grid grid-cols-2 gap-2"><input aria-label="Preço mínimo" type="number" min="0" step="10000" value={store.priceMin ?? ''} onChange={(e) => store.setPriceMin(e.target.value ? Number(e.target.value) : undefined)} placeholder="Preço mín." className={inputClass} /><input aria-label="Preço máximo" type="number" min="0" step="10000" value={store.priceMax ?? ''} onChange={(e) => store.setPriceMax(e.target.value ? Number(e.target.value) : undefined)} placeholder="Preço máx." className={inputClass} /></div>
-        <select aria-label="Tipo de imóvel" value={store.type ?? ''} onChange={(e) => store.setType(e.target.value || undefined)} className={inputClass + ' w-40'}><option value="">Tipo de imóvel</option>{PROPERTY_TYPES.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}</select>
+      <div className="mx-auto mt-3 grid max-w-4xl grid-cols-2 gap-2 px-4 sm:grid-cols-4 sm:px-6">
+        <input aria-label="Preço mínimo" type="number" min="0" step="10000" value={store.priceMin ?? ''} onChange={(e) => store.setPriceMin(e.target.value ? Number(e.target.value) : undefined)} placeholder="Preço mín." className={inputClass} />
+        <input aria-label="Preço máximo" type="number" min="0" step="10000" value={store.priceMax ?? ''} onChange={(e) => store.setPriceMax(e.target.value ? Number(e.target.value) : undefined)} placeholder="Preço máx." className={inputClass} />
+        <select aria-label="Tipo de imóvel" value={store.type ?? ''} onChange={(e) => store.setType(e.target.value || undefined)} className={inputClass}><option value="">Tipo de imóvel</option>{PROPERTY_TYPES.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}</select>
         <div className="hidden sm:block"><MoreFilters /></div>
-        <Button type="button" variant="outline" onClick={() => setMobileOpen(true)} className="h-10 gap-2 sm:hidden"><SlidersHorizontal className="size-4" />Filtros</Button>
+        <Button type="button" variant="outline" onClick={() => setMobileOpen(true)} className="h-10 w-full gap-2 sm:hidden"><SlidersHorizontal className="size-4" />Filtros</Button>
       </div>
       <div className="mx-auto max-w-4xl px-4 sm:px-6"><FilterChips /></div>
     </section>
