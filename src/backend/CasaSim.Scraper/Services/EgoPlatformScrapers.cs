@@ -380,7 +380,10 @@ internal static class EgoSitemapScraper
     {
         try
         {
-            var resp = await http.GetAsync(url, ct);
+            // EGO sites require a browser User-Agent; without one they return empty responses.
+            using var req = new HttpRequestMessage(HttpMethod.Get, url);
+            req.Headers.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36");
+            var resp = await http.SendAsync(req, ct);
             if (!resp.IsSuccessStatusCode) return null;
             var html = await resp.Content.ReadAsStringAsync(ct);
 
