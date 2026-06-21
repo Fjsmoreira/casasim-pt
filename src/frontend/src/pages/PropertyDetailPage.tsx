@@ -76,7 +76,7 @@ export default function PropertyDetailPage() {
           const scrollY = returnState?.scrollY
           if (scrollY !== undefined) window.setTimeout(() => window.scrollTo(0, scrollY), 0)
         }}
-        className="inline-flex items-center gap-1.5 text-sm text-emerald-600 hover:text-emerald-700 mb-6 transition-colors"
+        className="inline-flex items-center gap-1.5 text-sm text-sky-600 hover:text-sky-700 mb-6 transition-colors"
       >
         <ArrowLeft className="h-4 w-4" />
         Voltar para resultados
@@ -194,7 +194,7 @@ function ErrorPage({ id }: { id: string }) {
         </p>
         <Link
           to={`/listings/${id}`}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700 transition-colors text-sm font-medium"
         >
           <Loader2 className="h-4 w-4" />
           Tentar novamente
@@ -215,7 +215,7 @@ function NotFoundPage() {
         </p>
         <Link
           to="/search"
-          className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700 transition-colors text-sm font-medium"
         >
           <ArrowLeft className="h-4 w-4" />
           Ver imóveis disponíveis

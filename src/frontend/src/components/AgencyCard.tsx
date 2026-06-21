@@ -18,11 +18,11 @@ export default function AgencyCard({ name, logo, phone, email, source }: AgencyC
     <div className="mb-8 p-5 bg-white rounded-xl border border-gray-200 shadow-sm">
       <div className="flex items-start gap-4">
         {/* Logo placeholder */}
-        <div className="shrink-0 w-14 h-14 rounded-lg bg-emerald-100 flex items-center justify-center">
+        <div className="shrink-0 w-14 h-14 rounded-lg bg-sky-100 flex items-center justify-center">
           {logo ? (
             <img src={logo} alt={agencyName} className="w-full h-full object-contain rounded-lg" />
           ) : (
-            <Building2 className="h-7 w-7 text-emerald-600" />
+            <Building2 className="h-7 w-7 text-sky-600" />
           )}
         </div>
 
@@ -37,7 +37,7 @@ export default function AgencyCard({ name, logo, phone, email, source }: AgencyC
               {phone && (
                 <a
                   href={`tel:${phone}`}
-                  className="flex items-center gap-2 text-sm text-gray-600 hover:text-emerald-600 transition-colors"
+                  className="flex items-center gap-2 text-sm text-gray-600 hover:text-sky-600 transition-colors"
                 >
                   <Phone className="h-4 w-4 text-gray-400" />
                   {phone}
@@ -46,7 +46,7 @@ export default function AgencyCard({ name, logo, phone, email, source }: AgencyC
               {email && (
                 <a
                   href={`mailto:${email}`}
-                  className="flex items-center gap-2 text-sm text-gray-600 hover:text-emerald-600 transition-colors"
+                  className="flex items-center gap-2 text-sm text-gray-600 hover:text-sky-600 transition-colors"
                 >
                   <Mail className="h-4 w-4 text-gray-400" />
                   {email}

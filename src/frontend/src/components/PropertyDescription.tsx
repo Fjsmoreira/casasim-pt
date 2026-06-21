@@ -24,7 +24,7 @@ export default function PropertyDescription({ description }: PropertyDescription
               <span className="text-gray-300">…</span>
               <button
                 onClick={() => setExpanded(true)}
-                className="inline-flex items-center gap-1 ml-1 text-emerald-600 hover:text-emerald-700 text-sm font-medium transition-colors"
+                className="inline-flex items-center gap-1 ml-1 text-sky-600 hover:text-sky-700 text-sm font-medium transition-colors"
               >
                 Ler mais
                 <ChevronDown className="h-4 w-4" />
@@ -36,7 +36,7 @@ export default function PropertyDescription({ description }: PropertyDescription
           <button
             onClick={() => setExpanded(false)}
             className={cn(
-              'inline-flex items-center gap-1 mt-2 text-emerald-600 hover:text-emerald-700 text-sm font-medium transition-colors',
+              'inline-flex items-center gap-1 mt-2 text-sky-600 hover:text-sky-700 text-sm font-medium transition-colors',
             )}
           >
             Ler menos

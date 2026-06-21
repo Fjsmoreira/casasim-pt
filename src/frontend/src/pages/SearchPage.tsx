@@ -35,7 +35,7 @@ export default function SearchPage() {
   useEffect(() => {
     const numeric = (key: string) => searchParams.get(key) ? Number(searchParams.get(key)) : undefined
     store.hydrate({
-      type: searchParams.get('type') ?? undefined,
+      type: searchParams.get('type') ?? 'house,apartment',
       transaction: searchParams.get('transaction') ?? 'sale',
       priceMin: numeric('minPrice'), priceMax: numeric('maxPrice'), bedrooms: numeric('minBedrooms'), minAreaM2: numeric('minAreaM2'),
       locality: searchParams.get('locality') ?? undefined, agencySlug: searchParams.get('agencySlug') ?? undefined,

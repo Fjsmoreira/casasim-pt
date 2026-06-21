@@ -45,7 +45,7 @@ function popupContent(p: MapPropertiesResponse['features'][number]['properties']
     : `<div style="width:160px;height:120px;background:#e5e7eb;border-radius:6px;margin-bottom:6px;display:flex;align-items:center;justify-content:center;color:#6b7280;font-size:12px;">Sem foto</div>`
 
   const price = p.price != null
-    ? `<div style="font-size:15px;font-weight:700;color:#059669;">${formatPrice(p.price)}</div>`
+    ? `<div style="font-size:15px;font-weight:700;color:#2f7fa3;">${formatPrice(p.price)}</div>`
     : ''
 
   const title = buildTitle(p)
@@ -68,7 +68,7 @@ function MapContent({ filters }: { filters: ListingsParams }) {
   if (isLoading) {
     return (
       <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-[1000]">
-        <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
+        <Loader2 className="h-8 w-8 animate-spin text-sky-600" />
         <span className="ml-2 text-gray-600">A carregar imóveis...</span>
       </div>
     )
@@ -127,7 +127,7 @@ export default function MapPage() {
   }
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <Link to={returnTo} className="mb-4 inline-flex items-center gap-1 text-sm font-medium text-emerald-700 hover:text-emerald-900"><ArrowLeft className="size-4" />Voltar aos resultados</Link>
+      <Link to={returnTo} className="mb-4 inline-flex items-center gap-1 text-sm font-medium text-sky-700 hover:text-sky-900"><ArrowLeft className="size-4" />Voltar aos resultados</Link>
       <h1 className="text-2xl font-bold text-gray-900 mb-1">Mapa de imóveis</h1>
       <p className="text-gray-500 mb-6">
         Os imóveis apresentados correspondem aos filtros da sua pesquisa.

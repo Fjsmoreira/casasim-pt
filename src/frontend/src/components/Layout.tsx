@@ -4,9 +4,9 @@ import { Outlet, Link } from 'react-router-dom'
 export default function Layout() {
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="border-b border-amber-600 bg-[#f7a21b] text-white">
+      <header className="border-b border-sky-600 bg-[#4f8fb3] text-white">
         <nav className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <Link to="/" className="rounded bg-[#173c52] px-2.5 py-1 text-lg font-bold italic tracking-tight shadow-sm">
+          <Link to="/" className="rounded bg-[#1e3a5f] px-2.5 py-1 text-lg font-bold italic tracking-tight shadow-sm">
             CasaSim.pt
           </Link>
           <div className="hidden items-center gap-6 text-sm font-medium md:flex">

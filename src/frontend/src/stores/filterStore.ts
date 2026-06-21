@@ -33,7 +33,7 @@ export interface FilterState {
 const initialState = {
   priceMin: undefined,
   priceMax: undefined,
-  type: undefined,
+  type: 'house,apartment',
   bedrooms: undefined,
   minAreaM2: undefined,
   transaction: 'sale',

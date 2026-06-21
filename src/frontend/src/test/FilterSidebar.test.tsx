@@ -88,7 +88,7 @@ describe('FilterSidebar', () => {
     const clearButtons = screen.getAllByText('Limpar filtros')
     await user.click(clearButtons[0])
     expect(useFilterStore.getState().transaction).toBe('sale')
-    expect(useFilterStore.getState().type).toBeUndefined()
+    expect(useFilterStore.getState().type).toBe('house,apartment')
   })
 
   it('updates bedrooms via select dropdown', async () => {

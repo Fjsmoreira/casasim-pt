@@ -94,6 +94,7 @@ export interface ListingsParams {
   page?: number
   pageSize?: number
   search?: string
+  /** Comma-separated property types. Multiple values are combined with OR. */
   type?: string
   transaction?: string
   minPrice?: number

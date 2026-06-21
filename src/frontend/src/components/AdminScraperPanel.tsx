@@ -32,9 +32,9 @@ function formatDate(iso: string | null | undefined): string {
 function statusClass(status: string): string {
   switch (status) {
     case 'Succeeded':
-      return 'bg-emerald-100 text-emerald-800'
+      return 'bg-sky-100 text-sky-800'
     case 'PartiallySucceeded':
-      return 'bg-amber-100 text-amber-800'
+      return 'bg-sky-100 text-sky-800'
     case 'Failed':
       return 'bg-red-100 text-red-700'
     case 'Started':
@@ -47,7 +47,7 @@ function statusClass(status: string): string {
 function actionClass(action: string): string {
   switch (action) {
     case 'Created':
-      return 'bg-emerald-100 text-emerald-800'
+      return 'bg-sky-100 text-sky-800'
     case 'Updated':
       return 'bg-blue-100 text-blue-800'
     case 'Removed':
@@ -60,7 +60,7 @@ function actionClass(action: string): string {
 function activityClass(level: ScrapeRunActivity['level']): string {
   switch (level) {
     case 'Error': return 'bg-red-100 text-red-700'
-    case 'Warning': return 'bg-amber-100 text-amber-800'
+    case 'Warning': return 'bg-sky-100 text-sky-800'
     default: return 'bg-blue-100 text-blue-800'
   }
 }
@@ -298,7 +298,7 @@ export default function AdminScraperPanel({ onAuthExpired }: AdminScraperPanelPr
                         href={source.sourceUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-xs text-emerald-700 hover:underline break-all"
+                        className="text-xs text-sky-700 hover:underline break-all"
                       >
                         {source.sourceUrl}
                       </a>
@@ -328,7 +328,7 @@ export default function AdminScraperPanel({ onAuthExpired }: AdminScraperPanelPr
                     <button
                       onClick={() => requestRun(source)}
                       disabled={!source.enabled || source.manualRunRequestedAt !== null || runningSourceId === source.id}
-                      className="px-2 py-1 text-xs font-medium text-emerald-800 border border-emerald-300 rounded hover:bg-emerald-50 disabled:opacity-50"
+                      className="px-2 py-1 text-xs font-medium text-sky-800 border border-sky-300 rounded hover:bg-sky-50 disabled:opacity-50"
                     >
                       {source.manualRunRequestedAt ? 'Na fila' : 'Executar'}
                     </button>
@@ -336,7 +336,7 @@ export default function AdminScraperPanel({ onAuthExpired }: AdminScraperPanelPr
                       onClick={() => toggleSource(source)}
                       disabled={savingSourceId === source.id}
                       className={`inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                        source.enabled ? 'bg-emerald-700' : 'bg-gray-300'
+                        source.enabled ? 'bg-sky-700' : 'bg-gray-300'
                       } disabled:opacity-60`}
                       aria-label={`${source.enabled ? 'Desactivar' : 'Activar'} ${source.name}`}
                     >
@@ -369,7 +369,7 @@ export default function AdminScraperPanel({ onAuthExpired }: AdminScraperPanelPr
                 key={run.id}
                 onClick={() => setSelectedRunId(run.id)}
                 className={`w-full text-left px-4 py-3 hover:bg-gray-50 ${
-                  selectedRunId === run.id ? 'bg-emerald-50' : ''
+                  selectedRunId === run.id ? 'bg-sky-50' : ''
                 }`}
               >
                 <div className="flex items-center justify-between gap-3">
@@ -480,7 +480,7 @@ export default function AdminScraperPanel({ onAuthExpired }: AdminScraperPanelPr
                             href={change.sourceUrl}
                             target="_blank"
                             rel="noreferrer"
-                            className="text-xs text-emerald-700 hover:underline break-all"
+                            className="text-xs text-sky-700 hover:underline break-all"
                           >
                             {change.sourceUrl}
                           </a>

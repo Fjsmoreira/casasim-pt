@@ -134,7 +134,7 @@ public sealed class ListingQueryService : IListingQueryService
         return new ValidatedSearchRequest
         {
             City = string.IsNullOrWhiteSpace(request.City) ? null : request.City.Trim(),
-            PropertyType = string.IsNullOrWhiteSpace(request.PropertyType ?? request.Type) ? null : (request.PropertyType ?? request.Type),
+            PropertyTypes = ParsePropertyTypes(request.PropertyType ?? request.Type),
             PriceType = string.IsNullOrWhiteSpace(request.PriceType ?? request.Transaction) ? null : (request.PriceType ?? request.Transaction),
             Status = string.IsNullOrWhiteSpace(request.Status) ? null : request.Status,
             MinPrice = request.MinPrice,
@@ -158,8 +158,8 @@ public sealed class ListingQueryService : IListingQueryService
         if (v.City is not null)
             query = query.Where(l => l.City != null && EF.Functions.ILike(l.City, $"%{v.City}%"));
 
-        if (v.PropertyType is not null && Enum.TryParse<ListingPropertyType>(v.PropertyType, ignoreCase: true, out var pt))
-            query = query.Where(l => l.PropertyType == pt);
+        if (v.PropertyTypes.Count > 0)
+            query = query.Where(l => v.PropertyTypes.Contains(l.PropertyType));
 
         if (v.PriceType is not null && Enum.TryParse<ListingPriceType>(v.PriceType, ignoreCase: true, out var prt))
             query = query.Where(l => l.PriceType == prt);
@@ -201,6 +201,17 @@ public sealed class ListingQueryService : IListingQueryService
 
         return query;
     }
+
+    private static IReadOnlyList<ListingPropertyType> ParsePropertyTypes(string? propertyTypes) =>
+        string.IsNullOrWhiteSpace(propertyTypes)
+            ? []
+            : propertyTypes
+                .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+                .Select(type => Enum.TryParse<ListingPropertyType>(type, ignoreCase: true, out var value) ? value : (ListingPropertyType?)null)
+                .Where(type => type.HasValue)
+                .Select(type => type!.Value)
+                .Distinct()
+                .ToArray();
 
     private static IQueryable<Listing> ApplySorting(IQueryable<Listing> query, ValidatedSearchRequest v)
     {

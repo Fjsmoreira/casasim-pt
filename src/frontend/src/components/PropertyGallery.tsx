@@ -90,7 +90,7 @@ export default function PropertyGallery({ images, title }: PropertyGalleryProps)
               className={cn(
                 'shrink-0 w-16 h-12 rounded-md overflow-hidden border-2 transition-all',
                 i === currentIndex
-                  ? 'border-emerald-500 ring-1 ring-emerald-400'
+                  ? 'border-sky-500 ring-1 ring-sky-400'
                   : 'border-transparent opacity-70 hover:opacity-100'
               )}
             >

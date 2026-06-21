@@ -72,7 +72,7 @@ export default function ListingCard({ property }: ListingCardProps) {
             <div key={index} className="flex items-center justify-center bg-slate-200 text-slate-400"><Home className="size-6" /></div>
           ))}
         </div>
-        <span className="absolute left-3 top-3 rounded bg-[#f7a21b] px-2 py-1 text-[11px] font-bold uppercase tracking-wide text-white">{transactionLabel}</span>
+        <span className="absolute left-3 top-3 rounded bg-[#4f8fb3] px-2 py-1 text-[11px] font-bold uppercase tracking-wide text-white">{transactionLabel}</span>
         {status && <span className="absolute left-3 top-11 rounded bg-slate-800/85 px-2 py-1 text-[11px] font-semibold text-white">{status}</span>}
         <button type="button" aria-label="Adicionar aos favoritos" onClick={(event) => event.preventDefault()} className="absolute right-3 top-3 grid size-9 place-items-center rounded-full bg-white/95 text-sky-800 shadow-sm transition hover:bg-white"><Heart className="size-5" /></button>
       </div>

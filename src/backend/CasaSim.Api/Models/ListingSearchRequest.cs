@@ -1,3 +1,5 @@
+using CasaSim.Core.Data.Entities;
+
 namespace CasaSim.Api.Models;
 
 /// <summary>
@@ -34,7 +36,7 @@ public sealed class ListingSearchRequest
 internal sealed record ValidatedSearchRequest
 {
     public string? City { get; init; }
-    public string? PropertyType { get; init; }
+    public IReadOnlyList<ListingPropertyType> PropertyTypes { get; init; } = [];
     public string? PriceType { get; init; }
     public string? Status { get; init; }
     public decimal? MinPrice { get; init; }

@@ -21,10 +21,11 @@ const inputClass = 'h-10 w-full rounded border border-slate-300 bg-white px-3 te
 
 function FilterChips() {
   const store = useFilterStore()
+  const selectedTypes = store.type?.split(',').filter(Boolean) ?? []
   const chips = [
     store.locality && { label: store.locality, clear: () => store.setLocality(undefined) },
     (store.priceMin !== undefined || store.priceMax !== undefined) && { label: `${store.priceMin ? `€${store.priceMin.toLocaleString('pt-PT')}` : 'Qualquer'} – ${store.priceMax ? `€${store.priceMax.toLocaleString('pt-PT')}` : 'Qualquer'}`, clear: () => { store.setPriceMin(undefined); store.setPriceMax(undefined) } },
-    store.type && { label: PROPERTY_TYPES.find((item) => item.value === store.type)?.label ?? store.type, clear: () => store.setType(undefined) },
+    selectedTypes.length > 0 && { label: selectedTypes.map((value) => PROPERTY_TYPES.find((item) => item.value === value)?.label ?? value).join(' ou '), clear: () => store.setType(undefined) },
     store.bedrooms !== undefined && { label: `${store.bedrooms}+ quartos`, clear: () => store.setBedrooms(undefined) },
     store.minAreaM2 !== undefined && { label: `${store.minAreaM2}+ m²`, clear: () => store.setMinAreaM2(undefined) },
     store.agencySlug && { label: 'Agência selecionada', clear: () => store.setAgencySlug(undefined) },
@@ -41,6 +42,34 @@ function FilterChips() {
       <button type="button" onClick={store.clearFilters} className="text-xs font-medium text-sky-700 hover:text-sky-900">Limpar tudo</button>
     </div>
   )
+}
+
+function PropertyTypeSelect() {
+  const store = useFilterStore()
+  const [open, setOpen] = useState(false)
+  const selectedTypes = store.type?.split(',').filter(Boolean) ?? []
+  const selectedLabel = selectedTypes.length === 0
+    ? 'Tipo de imóvel'
+    : selectedTypes.map((value) => PROPERTY_TYPES.find((type) => type.value === value)?.label ?? value).join(' ou ')
+
+  const toggleType = (value: string) => {
+    const next = selectedTypes.includes(value)
+      ? selectedTypes.filter((type) => type !== value)
+      : [...selectedTypes, value]
+    store.setType(next.length ? next.join(',') : undefined)
+  }
+
+  return <div className="relative">
+    <button type="button" aria-label="Tipo de imóvel" aria-expanded={open} onClick={() => setOpen(!open)} className={inputClass + ' flex items-center justify-between text-left'}>
+      <span className="truncate">{selectedLabel}</span><ChevronDown className="ml-2 size-4 shrink-0" />
+    </button>
+    {open && <div className="absolute z-30 mt-2 w-full min-w-52 rounded-lg border border-sky-200 bg-white p-2 shadow-lg">
+      {PROPERTY_TYPES.map((type) => <label key={type.value} className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm text-slate-700 hover:bg-sky-50">
+        <input type="checkbox" checked={selectedTypes.includes(type.value)} onChange={() => toggleType(type.value)} className="size-4 accent-sky-700" />
+        {type.label}
+      </label>)}
+    </div>}
+  </div>
 }
 
 function MoreFilters({ compact = false }: { compact?: boolean }) {
@@ -80,7 +109,7 @@ export function SortControl() {
   const store = useFilterStore()
   const value = `${store.sortBy ?? 'UpdatedAt'}:${store.sortDirection ?? 'Desc'}`
   return <label className="flex items-center gap-2 text-sm text-gray-600">Ordenar
-    <select aria-label="Ordenar resultados" value={value} onChange={(e) => { const [sortBy, sortDirection] = e.target.value.split(':'); store.setSortBy(sortBy); store.setSortDirection(sortDirection as 'Asc' | 'Desc') }} className="rounded-md border border-gray-200 bg-white px-2 py-1.5 text-sm font-medium text-gray-800 outline-none focus:border-emerald-600">
+    <select aria-label="Ordenar resultados" value={value} onChange={(e) => { const [sortBy, sortDirection] = e.target.value.split(':'); store.setSortBy(sortBy); store.setSortDirection(sortDirection as 'Asc' | 'Desc') }} className="rounded-md border border-gray-200 bg-white px-2 py-1.5 text-sm font-medium text-gray-800 outline-none focus:border-sky-700">
       <option value="UpdatedAt:Desc">Mais recentes</option><option value="Price:Asc">Preço mais baixo</option><option value="Price:Desc">Preço mais alto</option><option value="AreaM2:Desc">Maior área</option>
     </select>
   </label>
@@ -94,13 +123,13 @@ export default function SearchControls() {
     <section className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 py-3 shadow-sm backdrop-blur" aria-label="Pesquisa de imóveis">
       <div className="mx-auto max-w-4xl px-4 sm:px-6">
         <label className="sr-only" htmlFor="locality">Localidade</label>
-        <div className="flex"><input id="locality" list="pombal-localities" value={store.locality ?? ''} onChange={(e) => store.setLocality(e.target.value || undefined)} placeholder="Pesquisar por localidade, bairro ou código postal" className={inputClass + ' rounded-r-none'} /><button type="button" aria-label="Pesquisar" className="grid h-10 w-11 shrink-0 place-items-center rounded-r bg-[#f7a21b] text-white hover:bg-amber-600"><Search className="size-4" /></button></div>
+        <div className="flex"><input id="locality" list="pombal-localities" value={store.locality ?? ''} onChange={(e) => store.setLocality(e.target.value || undefined)} placeholder="Pesquisar por localidade, bairro ou código postal" className={inputClass + ' rounded-r-none'} /><button type="button" aria-label="Pesquisar" className="grid h-10 w-11 shrink-0 place-items-center rounded-r bg-[#4f8fb3] text-white hover:bg-sky-700"><Search className="size-4" /></button></div>
         <datalist id="pombal-localities">{LOCALITIES.map((locality) => <option key={locality} value={locality} />)}</datalist>
       </div>
       <div className="mx-auto mt-3 grid max-w-4xl grid-cols-2 gap-2 px-4 sm:grid-cols-4 sm:px-6">
         <input aria-label="Preço mínimo" type="number" min="0" step="10000" value={store.priceMin ?? ''} onChange={(e) => store.setPriceMin(e.target.value ? Number(e.target.value) : undefined)} placeholder="Preço mín." className={inputClass} />
         <input aria-label="Preço máximo" type="number" min="0" step="10000" value={store.priceMax ?? ''} onChange={(e) => store.setPriceMax(e.target.value ? Number(e.target.value) : undefined)} placeholder="Preço máx." className={inputClass} />
-        <select aria-label="Tipo de imóvel" value={store.type ?? ''} onChange={(e) => store.setType(e.target.value || undefined)} className={inputClass}><option value="">Tipo de imóvel</option>{PROPERTY_TYPES.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}</select>
+        <PropertyTypeSelect />
         <div className="hidden sm:block"><MoreFilters /></div>
         <Button type="button" variant="outline" onClick={() => setMobileOpen(true)} className="h-10 w-full gap-2 sm:hidden"><SlidersHorizontal className="size-4" />Filtros</Button>
       </div>

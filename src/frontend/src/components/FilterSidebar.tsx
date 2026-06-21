@@ -72,6 +72,14 @@ function FilterContent({ className }: { className?: string }) {
     [setBedrooms],
   )
 
+  const selectedTypes = type?.split(',').filter(Boolean) ?? []
+  const toggleType = (value: string) => {
+    const next = selectedTypes.includes(value)
+      ? selectedTypes.filter((selected) => selected !== value)
+      : [...selectedTypes, value]
+    setType(next.length ? next.join(',') : undefined)
+  }
+
   return (
     <div className={cn('space-y-5', className)}>
       {/* ── Sort ── */}
@@ -98,11 +106,11 @@ function FilterContent({ className }: { className?: string }) {
             <button
               key={pt.value}
               type="button"
-              onClick={() => setType(type === pt.value ? undefined : pt.value)}
+              onClick={() => toggleType(pt.value)}
               className={cn(
                 'rounded-md border px-2.5 py-1 text-xs font-medium transition-colors',
-                type === pt.value
-                  ? 'border-emerald-600 bg-emerald-50 text-emerald-700'
+                selectedTypes.includes(pt.value)
+                  ? 'border-sky-700 bg-sky-50 text-sky-800'
                   : 'border-input bg-background text-muted-foreground hover:bg-accent',
               )}
             >

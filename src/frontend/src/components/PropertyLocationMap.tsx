@@ -34,7 +34,7 @@ export default function PropertyLocationMap({
             <Popup>
               <div className="text-sm">
                 <p className="font-medium">{title}</p>
-                {price && <p className="text-emerald-700 font-semibold">{price}</p>}
+                {price && <p className="text-sky-700 font-semibold">{price}</p>}
               </div>
             </Popup>
           </Marker>

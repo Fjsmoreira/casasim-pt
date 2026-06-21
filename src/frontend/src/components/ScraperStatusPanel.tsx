@@ -50,7 +50,7 @@ export default function ScraperStatusPanel({ onFetchSuccess, onError }: ScraperS
   // ── Status badge ─────────────────────────────────────────────
   function StatusBadge({ status }: { status: string }) {
     const colors: Record<string, string> = {
-      Succeeded: 'bg-green-100 text-green-800',
+      Succeeded: 'bg-sky-100 text-sky-800',
       PartiallySucceeded: 'bg-yellow-100 text-yellow-800',
       Failed: 'bg-red-100 text-red-800',
       Started: 'bg-blue-100 text-blue-800',
@@ -257,7 +257,7 @@ function SectionHeader({
         <button
           onClick={onRunNow}
           disabled={running}
-          className="inline-flex items-center gap-1.5 bg-emerald-700 text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-emerald-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="inline-flex items-center gap-1.5 bg-sky-700 text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-sky-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {running ? (
             <>

@@ -29,9 +29,9 @@ function formatDate(iso: string): string {
 function statusBadgeClass(status: string): string {
   switch (status) {
     case 'Active':
-      return 'bg-emerald-100 text-emerald-800'
+      return 'bg-sky-100 text-sky-800'
     case 'Reserved':
-      return 'bg-amber-100 text-amber-800'
+      return 'bg-sky-100 text-sky-800'
     case 'Pending':
       return 'bg-blue-100 text-blue-800'
     case 'Sold':
@@ -182,7 +182,7 @@ export default function AdminPage() {
               value={inputKey}
               onChange={(e) => setInputKey(e.target.value)}
               placeholder="Insira a chave de administração"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
               autoFocus
             />
           </div>
@@ -191,7 +191,7 @@ export default function AdminPage() {
           )}
           <button
             type="submit"
-            className="w-full bg-emerald-700 text-white py-2 px-4 rounded-md hover:bg-emerald-800 transition-colors font-medium"
+            className="w-full bg-sky-700 text-white py-2 px-4 rounded-md hover:bg-sky-800 transition-colors font-medium"
           >
             Entrar
           </button>
@@ -224,7 +224,7 @@ export default function AdminPage() {
             onClick={() => setActiveTab('dashboard')}
             className={`pb-3 text-sm font-medium border-b-2 transition-colors ${
               activeTab === 'dashboard'
-                ? 'border-emerald-700 text-emerald-700'
+                ? 'border-sky-700 text-sky-700'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
@@ -234,7 +234,7 @@ export default function AdminPage() {
             onClick={() => setActiveTab('listings')}
             className={`pb-3 text-sm font-medium border-b-2 transition-colors ${
               activeTab === 'listings'
-                ? 'border-emerald-700 text-emerald-700'
+                ? 'border-sky-700 text-sky-700'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
@@ -244,7 +244,7 @@ export default function AdminPage() {
             onClick={() => setActiveTab('scrapers')}
             className={`pb-3 text-sm font-medium border-b-2 transition-colors ${
               activeTab === 'scrapers'
-                ? 'border-emerald-700 text-emerald-700'
+                ? 'border-sky-700 text-sky-700'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
@@ -280,7 +280,7 @@ export default function AdminPage() {
               </div>
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 <p className="text-sm text-gray-500 mb-1">Imóveis Activos</p>
-                <p className="text-3xl font-bold text-emerald-700">{dashboard.activeListings}</p>
+                <p className="text-3xl font-bold text-sky-700">{dashboard.activeListings}</p>
               </div>
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 <p className="text-sm text-gray-500 mb-1">Scraped Hoje</p>
@@ -303,7 +303,7 @@ export default function AdminPage() {
                 <select
                   value={filterStatus}
                   onChange={(e) => handleFilterChange(setFilterStatus, e.target.value)}
-                  className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
                 >
                   <option value="">Todos</option>
                   {LISTING_STATUSES.map((s) => (
@@ -318,7 +318,7 @@ export default function AdminPage() {
                 <select
                   value={filterAgency}
                   onChange={(e) => handleFilterChange(setFilterAgency, e.target.value)}
-                  className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
                 >
                   <option value="">Todas</option>
                   {agencies.map((a) => (
@@ -336,11 +336,11 @@ export default function AdminPage() {
                     value={searchInput}
                     onChange={(e) => setSearchInput(e.target.value)}
                     placeholder="Título ou cidade…"
-                    className="flex-1 border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="flex-1 border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
                   />
                   <button
                     type="submit"
-                    className="bg-emerald-700 text-white px-3 py-1.5 rounded-md text-sm hover:bg-emerald-800 transition-colors"
+                    className="bg-sky-700 text-white px-3 py-1.5 rounded-md text-sm hover:bg-sky-800 transition-colors"
                   >
                     Filtrar
                   </button>

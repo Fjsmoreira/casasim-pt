@@ -14,7 +14,7 @@ export default function PropertyFeatures({ features }: PropertyFeaturesProps) {
         {features.map((feature, i) => (
           <span
             key={i}
-            className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 text-emerald-700 px-3 py-1.5 text-sm border border-emerald-200"
+            className="inline-flex items-center gap-1.5 rounded-full bg-sky-50 text-sky-700 px-3 py-1.5 text-sm border border-sky-200"
           >
             <Sparkles className="h-3.5 w-3.5" />
             {feature}

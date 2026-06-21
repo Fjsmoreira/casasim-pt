@@ -40,7 +40,7 @@ export default function PropertyHeader({
       </h1>
 
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 mb-3">
-        <span className="text-2xl font-bold text-emerald-700">
+        <span className="text-2xl font-bold text-sky-700">
           {formatter.format(price)}
         </span>
         <span
@@ -74,7 +74,7 @@ export default function PropertyHeader({
           href={listingUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 text-sm text-emerald-600 hover:text-emerald-700 transition-colors mt-2"
+          className="inline-flex items-center gap-1.5 text-sm text-sky-600 hover:text-sky-700 transition-colors mt-2"
         >
           <ExternalLink className="h-4 w-4" />
           Ver anúncio original{source ? ` (${source})` : ''}
