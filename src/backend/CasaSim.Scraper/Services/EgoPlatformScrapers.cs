@@ -418,25 +418,50 @@ internal static class EgoSitemapScraper
                 if (decimal.TryParse(priceText, out var p)) price = p;
             }
 
-            // Extract images
-            // Match src or href attributes with media/image URLs.
-            // EGO sites may serve images from media.egorealestate.com, images.egorealestate.com,
-            // or embed them in <picture>/<source> elements.
-            var imgMatches = Regex.Matches(html, @"(?:src|href)=""([^""]*(?:media|image|foto|photo|img|egorealestate)[^""]*\.(?:jpg|jpeg|png|webp)[^""]*)""", RegexOptions.IgnoreCase);
-            foreach (Match m in imgMatches)
+            // Extract images using HtmlAgilityPack (more reliable than regex)
+            // 1. Find all <img> tags with real image sources (skip base64 placeholders)
+            var imgNodes = doc.DocumentNode.SelectNodes("//img[not(contains(@src, 'data:image'))]");
+            if (imgNodes is not null)
             {
-                var src = m.Groups[1].Value;
-                if (!src.StartsWith("http")) src = "https:" + (src.StartsWith("//") ? "" : "//") + src;
-                if (!images.Contains(src)) images.Add(src);
+                foreach (var img in imgNodes)
+                {
+                    var src = img.GetAttributeValue("src", "");
+                    if (string.IsNullOrWhiteSpace(src)) continue;
+                    // Only keep actual image URLs (skip JS/CSS assets from egorealestate CDN)
+                    if (src.EndsWith(".js", StringComparison.OrdinalIgnoreCase) ||
+                        src.EndsWith(".css", StringComparison.OrdinalIgnoreCase) ||
+                        src.EndsWith(".svg", StringComparison.OrdinalIgnoreCase))
+                        continue;
+                    if (!src.StartsWith("http")) src = "https:" + (src.StartsWith("//") ? "" : "//") + src;
+                    if (!images.Contains(src)) images.Add(src);
+                }
             }
 
-            // Also check og:image meta tag (EGO sites often have this)
-            var ogImageMatch = Regex.Match(html, @"<meta[^>]+property=""og:image""[^>]+content=""([^""]+)""", RegexOptions.IgnoreCase);
-            if (ogImageMatch.Success)
+            // 2. Check <picture>/<source> elements for responsive images
+            var sourceNodes = doc.DocumentNode.SelectNodes("//source[@srcset or @src]");
+            if (sourceNodes is not null)
             {
-                var ogSrc = ogImageMatch.Groups[1].Value;
-                if (!ogSrc.StartsWith("http")) ogSrc = "https:" + (ogSrc.StartsWith("//") ? "" : "//") + ogSrc;
-                if (!images.Contains(ogSrc)) images.Insert(0, ogSrc); // og:image is usually the primary photo
+                foreach (var source in sourceNodes)
+                {
+                    var srcset = source.GetAttributeValue("srcset", "");
+                    var src = source.GetAttributeValue("src", "");
+                    var url = !string.IsNullOrWhiteSpace(srcset) ? srcset.Split(',')[0].Trim().Split(' ')[0] : src;
+                    if (string.IsNullOrWhiteSpace(url)) continue;
+                    if (!url.StartsWith("http")) url = "https:" + (url.StartsWith("//") ? "" : "//") + url;
+                    if (!images.Contains(url)) images.Add(url);
+                }
+            }
+
+            // 3. Also check og:image meta tag (EGO sites always have this)
+            var ogImageNode = doc.DocumentNode.SelectSingleNode("//meta[@property='og:image']");
+            if (ogImageNode is not null)
+            {
+                var ogSrc = ogImageNode.GetAttributeValue("content", "");
+                if (!string.IsNullOrWhiteSpace(ogSrc))
+                {
+                    if (!ogSrc.StartsWith("http")) ogSrc = "https:" + (ogSrc.StartsWith("//") ? "" : "//") + ogSrc;
+                    if (!images.Contains(ogSrc)) images.Insert(0, ogSrc);
+                }
             }
 
             // Build minimal property from available data
