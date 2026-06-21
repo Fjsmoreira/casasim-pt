@@ -419,12 +419,24 @@ internal static class EgoSitemapScraper
             }
 
             // Extract images
-            var imgMatches = Regex.Matches(html, @"(?:src|href)=\""([^""]*(?:media|image|foto|photo|img)[^""]*\.(?:jpg|jpeg|png|webp)[^""]*)\""", RegexOptions.IgnoreCase);
+            // Match src or href attributes with media/image URLs.
+            // EGO sites may serve images from media.egorealestate.com, images.egorealestate.com,
+            // or embed them in <picture>/<source> elements.
+            var imgMatches = Regex.Matches(html, @"(?:src|href)=""([^""]*(?:media|image|foto|photo|img|egorealestate)[^""]*\.(?:jpg|jpeg|png|webp)[^""]*)""", RegexOptions.IgnoreCase);
             foreach (Match m in imgMatches)
             {
                 var src = m.Groups[1].Value;
-                if (!src.StartsWith("http")) src = baseUrl.TrimEnd('/') + (src.StartsWith("/") ? "" : "/") + src;
+                if (!src.StartsWith("http")) src = "https:" + (src.StartsWith("//") ? "" : "//") + src;
                 if (!images.Contains(src)) images.Add(src);
+            }
+
+            // Also check og:image meta tag (EGO sites often have this)
+            var ogImageMatch = Regex.Match(html, @"<meta[^>]+property=""og:image""[^>]+content=""([^""]+)""", RegexOptions.IgnoreCase);
+            if (ogImageMatch.Success)
+            {
+                var ogSrc = ogImageMatch.Groups[1].Value;
+                if (!ogSrc.StartsWith("http")) ogSrc = "https:" + (ogSrc.StartsWith("//") ? "" : "//") + ogSrc;
+                if (!images.Contains(ogSrc)) images.Insert(0, ogSrc); // og:image is usually the primary photo
             }
 
             // Build minimal property from available data
