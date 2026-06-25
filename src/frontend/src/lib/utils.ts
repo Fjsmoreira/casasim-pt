@@ -15,3 +15,15 @@ export function formatPricePerM2(
   const value = Math.round(price / areaM2).toLocaleString('pt-PT')
   return `${value} €/m²${transaction === 'rent' ? '/mês' : ''}`
 }
+
+export function formatListingPrice(price?: number | null, transaction?: 'sale' | 'rent') {
+  if (!price || price <= 0) return 'Sob Consulta'
+
+  const value = new Intl.NumberFormat('pt-PT', {
+    style: 'currency',
+    currency: 'EUR',
+    maximumFractionDigits: 0,
+  }).format(price)
+
+  return transaction === 'rent' ? `${value}/mês` : value
+}

@@ -124,6 +124,7 @@ public sealed class ListingUpsertService
         // ── Look up existing listing by (AgencyId, ExternalId) ──
         var existing = await _db.Listings
             .AsTracking()
+            .Include(l => l.Images)
             .FirstOrDefaultAsync(
                 l => l.AgencyId == agency.Id && l.ExternalId == property.ExternalId,
                 ct);
@@ -131,11 +132,23 @@ public sealed class ListingUpsertService
         if (existing is not null)
         {
             var changes = BuildChangeSummary(existing, property);
+            var now = DateTimeOffset.UtcNow;
+
+            if (changes.Count == 0)
+            {
+                existing.LastSeenAt = now;
+
+                using var skippedListingScope = LogContext.PushProperty("listingId", existing.Id);
+                _logger.LogDebug("Skipped unchanged listing {SourceId} ({Title})",
+                    property.ExternalId, property.Title);
+
+                return new ListingUpsertResult(ListingUpsertAction.Skipped, existing.Id);
+            }
 
             // ── Update ────────────────────────────────────────
             MapPropertyToListing(property, existing, agency.Id);
-            existing.UpdatedAt = DateTimeOffset.UtcNow;
-            existing.LastSeenAt = DateTimeOffset.UtcNow;
+            existing.UpdatedAt = now;
+            existing.LastSeenAt = now;
 
             // Replace images with set-based deletes instead of clearing a tracked
             // collection.  Clearing a loaded collection in large batches caused
@@ -360,7 +373,7 @@ public sealed class ListingUpsertService
         listing.PriceType = MapPriceType(property.Transaction);
         listing.Status = MapStatus(property.Status);
 
-        listing.Price = property.Price;
+        listing.Price = NormalizePrice(property.Price);
         listing.AreaM2 = property.AreaM2 is not null ? (decimal?)property.AreaM2 : null;
         listing.LandAreaM2 = property.LandAreaM2 is not null ? (decimal?)property.LandAreaM2 : null;
         listing.Bedrooms = property.Bedrooms;
@@ -420,7 +433,7 @@ public sealed class ListingUpsertService
         AddIfChanged(changes, "propertyType", existing.PropertyType.ToString(), MapPropertyType(property.Type).ToString());
         AddIfChanged(changes, "priceType", existing.PriceType.ToString(), MapPriceType(property.Transaction).ToString());
         AddIfChanged(changes, "status", existing.Status.ToString(), MapStatus(property.Status).ToString());
-        AddIfChanged(changes, "price", existing.Price, property.Price);
+        AddIfChanged(changes, "price", existing.Price, NormalizePrice(property.Price));
         AddIfChanged(changes, "areaM2", existing.AreaM2, property.AreaM2 is not null ? (decimal?)property.AreaM2 : null);
         AddIfChanged(changes, "landAreaM2", existing.LandAreaM2, property.LandAreaM2 is not null ? (decimal?)property.LandAreaM2 : null);
         AddIfChanged(changes, "bedrooms", existing.Bedrooms, property.Bedrooms);
@@ -428,6 +441,18 @@ public sealed class ListingUpsertService
         AddIfChanged(changes, "parkingSpaces", existing.ParkingSpaces, property.ParkingSpots);
         AddIfChanged(changes, "yearBuilt", existing.YearBuilt, property.YearBuilt);
         AddIfChanged(changes, "energyClass", existing.EnergyClass, property.EnergyClass);
+        AddIfChanged(changes, "publishedAt", existing.PublishedAt, ToDateTimeOffset(property.PublishedAt) ?? existing.PublishedAt);
+
+        var existingImages = existing.Images
+            .OrderBy(i => i.SortOrder)
+            .Select(i => i.Url)
+            .ToArray();
+        if (!existingImages.SequenceEqual(property.Images, StringComparer.Ordinal))
+        {
+            changes["images"] = new FieldChange(
+                JsonSerializer.Serialize(existingImages),
+                JsonSerializer.Serialize(property.Images));
+        }
 
         return changes;
     }
@@ -496,6 +521,8 @@ public sealed class ListingUpsertService
 
         return new DateTimeOffset(utc);
     }
+
+    private static decimal? NormalizePrice(decimal price) => price > 0 ? price : null;
 
     private static ListingPropertyType MapPropertyType(PropertyType type) => type switch
     {

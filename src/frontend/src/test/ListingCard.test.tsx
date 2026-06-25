@@ -8,7 +8,7 @@ describe('ListingCard', () => {
     render(<ListingCard property={mockListing} />)
 
     // Price formatted with pt-PT locale — may use . or , as separator
-    expect(screen.getByText(/€\d/)).toBeInTheDocument()
+    expect(screen.getByText(/185[\s\u00a0]*000[\s\u00a0]*€/)).toBeInTheDocument()
 
     // Title
     expect(screen.getByText('Moradia T3 em Pombal')).toBeInTheDocument()
@@ -38,6 +38,13 @@ describe('ListingCard', () => {
     expect(screen.getAllByText(/\/mês/).length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText(/12\s*€\/m²\/mês/)).toBeInTheDocument()
     expect(screen.getByText('Arrendamento')).toBeInTheDocument()
+  })
+
+  it('renders Sob Consulta when price is missing', () => {
+    render(<ListingCard property={{ ...mockListing, price: null }} />)
+
+    expect(screen.getByText('Sob Consulta')).toBeInTheDocument()
+    expect(screen.queryByText(/€\/m²/)).not.toBeInTheDocument()
   })
 
   it('does not render area, price per m2 or bedrooms when area and bedrooms are not provided', () => {

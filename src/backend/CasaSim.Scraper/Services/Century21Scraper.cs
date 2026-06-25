@@ -17,7 +17,7 @@ namespace CasaSim.Scraper.Services;
 /// API base: https://www.century21.pt/api
 /// List:     GET /api/properties?addresses=1015&amp;address_names=Pombal&amp;ad_type=sell
 /// </summary>
-internal sealed class Century21Scraper : IPropertyScraper, IAgencyScraper
+internal sealed class Century21Scraper : IPropertyScraper, IAgencyScraper, IIncrementalPropertyScraper
 {
     private const string BaseUrl = "https://www.century21.pt";
     private const string ApiPath = "/api/properties";
@@ -71,12 +71,19 @@ internal sealed class Century21Scraper : IPropertyScraper, IAgencyScraper
     /// </summary>
     public async Task<IReadOnlyList<Property>> ScrapeAsync(CancellationToken ct = default)
     {
+        return await ScrapeAsync(
+            new ScrapeRequest(ScrapeMode.Full, new HashSet<string>(StringComparer.OrdinalIgnoreCase), 10),
+            ct);
+    }
+
+    public async Task<IReadOnlyList<Property>> ScrapeAsync(ScrapeRequest request, CancellationToken ct = default)
+    {
         var results = new List<Property>();
 
         // Sell
         try
         {
-            var sell = await FetchAdTypeAsync("sell", ct);
+            var sell = await FetchAdTypeAsync("sell", request, ct);
             results.AddRange(sell);
             _logger.LogInformation("Century21 sell: {Count} properties", sell.Count);
         }
@@ -88,7 +95,7 @@ internal sealed class Century21Scraper : IPropertyScraper, IAgencyScraper
         // Rent
         try
         {
-            var rent = await FetchAdTypeAsync("rent", ct);
+            var rent = await FetchAdTypeAsync("rent", request, ct);
             results.AddRange(rent);
             _logger.LogInformation("Century21 rent: {Count} properties", rent.Count);
         }
@@ -164,9 +171,9 @@ internal sealed class Century21Scraper : IPropertyScraper, IAgencyScraper
     /// <summary>
     /// Fetch one ad_type (sell/rent), parse, map to Property.
     /// </summary>
-    private async Task<IReadOnlyList<Property>> FetchAdTypeAsync(string adType, CancellationToken ct)
+    private async Task<IReadOnlyList<Property>> FetchAdTypeAsync(string adType, ScrapeRequest request, CancellationToken ct)
     {
-        var (parsed, _) = await FetchRawAsync(adType, ct);
+        var (parsed, _) = await FetchRawAsync(adType, request, ct);
         return parsed.Select(MapToProperty).ToList();
     }
 
@@ -178,10 +185,20 @@ internal sealed class Century21Scraper : IPropertyScraper, IAgencyScraper
     private async Task<(IReadOnlyList<ParsedListing> Listings, int Total)> FetchRawAsync(
         string adType, CancellationToken ct)
     {
-        const int pageSize = 20;
+        return await FetchRawAsync(
+            adType,
+            new ScrapeRequest(ScrapeMode.Full, new HashSet<string>(StringComparer.OrdinalIgnoreCase), 10),
+            ct);
+    }
+
+    private async Task<(IReadOnlyList<ParsedListing> Listings, int Total)> FetchRawAsync(
+        string adType, ScrapeRequest request, CancellationToken ct)
+    {
         var allListings = new List<ParsedListing>();
         int totalCount = 0;
         int page = 1;
+        var consecutiveKnown = 0;
+        var stopThreshold = request.KnownListingStopThreshold > 0 ? request.KnownListingStopThreshold : 10;
 
         do
         {
@@ -206,6 +223,24 @@ internal sealed class Century21Scraper : IPropertyScraper, IAgencyScraper
             {
                 if (!allListings.Any(l => l.ExternalId == listing.ExternalId))
                     allListings.Add(listing);
+
+                if (request.Mode == ScrapeMode.Incremental &&
+                    request.KnownExternalIds.Contains(listing.ExternalId))
+                {
+                    consecutiveKnown++;
+                }
+                else
+                {
+                    consecutiveKnown = 0;
+                }
+            }
+
+            if (request.Mode == ScrapeMode.Incremental && consecutiveKnown >= stopThreshold)
+            {
+                _logger.LogInformation(
+                    "Century21 {AdType}: stopping incremental scrape after {KnownCount} consecutive known listing(s)",
+                    adType, consecutiveKnown);
+                break;
             }
 
             if (totalCount > 0 && allListings.Count >= totalCount)

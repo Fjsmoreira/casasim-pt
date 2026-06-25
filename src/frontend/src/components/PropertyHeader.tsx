@@ -1,9 +1,9 @@
 import { MapPin, ExternalLink } from 'lucide-react'
-import { cn, formatPricePerM2 } from '@/lib/utils'
+import { cn, formatListingPrice, formatPricePerM2 } from '@/lib/utils'
 
 interface PropertyHeaderProps {
   title: string
-  price: number
+  price: number | null
   transaction: 'sale' | 'rent'
   areaM2?: number
   parish?: string
@@ -24,12 +24,6 @@ export default function PropertyHeader({
   listingUrl,
   source,
 }: PropertyHeaderProps) {
-  const formatter = new Intl.NumberFormat('pt-PT', {
-    style: 'currency',
-    currency: 'EUR',
-    maximumFractionDigits: 0,
-  })
-
   const locationParts = [parish, city, district].filter(Boolean) as string[]
   const pricePerM2 = formatPricePerM2(price, areaM2, transaction)
 
@@ -41,7 +35,7 @@ export default function PropertyHeader({
 
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 mb-3">
         <span className="text-2xl font-bold text-sky-700">
-          {formatter.format(price)}
+          {formatListingPrice(price, transaction)}
         </span>
         <span
           className={cn(

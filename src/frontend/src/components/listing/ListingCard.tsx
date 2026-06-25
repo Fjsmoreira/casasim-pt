@@ -1,5 +1,5 @@
 import { Bath, BedDouble, CalendarDays, Heart, Home, MapPin, Maximize, Building2 } from 'lucide-react'
-import { formatPricePerM2 } from '@/lib/utils'
+import { formatListingPrice, formatPricePerM2 } from '@/lib/utils'
 import type { ListingSummary } from '@/types/api'
 
 const TYPE_LABELS: Record<string, string> = {
@@ -82,10 +82,7 @@ export default function ListingCard({ property }: ListingCardProps) {
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0"><h3 className="truncate text-base font-bold text-sky-800 group-hover:underline">{title}</h3><p className="mt-0.5 flex items-center gap-1 text-sm text-slate-600"><MapPin className="size-3.5 shrink-0" /><span className="truncate">{location}</span></p></div>
           <p className="shrink-0 text-xl font-bold text-slate-900">
-          €{price.toLocaleString('pt-PT')}
-          {transaction === 'rent' && (
-            <span className="text-sm font-normal text-gray-500">/mês</span>
-          )}
+            {formatListingPrice(price, transaction === 'rent' ? 'rent' : 'sale')}
           </p>
         </div>
         {pricePerM2 && (

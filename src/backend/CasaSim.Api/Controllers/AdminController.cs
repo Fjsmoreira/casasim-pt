@@ -90,7 +90,7 @@ public sealed class AdminController : ControllerBase
                 Id = l.Id,
                 Title = l.Title,
                 Price = l.Price,
-                PriceFormatted = l.Price != null ? $"€{l.Price:N0}" : null,
+                PriceFormatted = l.Price != null && l.Price > 0 ? $"€{l.Price:N0}" : "Sob Consulta",
                 Currency = l.Currency,
                 PropertyType = l.PropertyType.ToString(),
                 Status = l.Status.ToString(),
