@@ -15,6 +15,10 @@ public sealed class ScraperSource
     public bool Enabled { get; set; } = true;
     public TimeSpan Interval { get; set; } = TimeSpan.FromHours(6);
     public DateTimeOffset? ManualRunRequestedAt { get; set; }
+    public DateTimeOffset? LastFullScrapeAt { get; set; }
+    public int IncrementalKnownListingThreshold { get; set; } = 10;
+    public string? LatestKnownExternalIdsJson { get; set; }
+    public bool ForceFullScrape { get; set; }
 
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;

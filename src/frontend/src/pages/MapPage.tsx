@@ -5,6 +5,7 @@ import { useMapListings } from '@/hooks/useMapListings'
 import type { MapPropertiesResponse } from '@/types/api'
 import { ArrowLeft, Loader2 } from 'lucide-react'
 import type { ListingsParams } from '@/types/api'
+import { formatListingPrice } from '@/lib/utils'
 
 // ── Default marker icon fix for Leaflet + bundlers ──
 // Leaflet's default icon assets fail in bundlers because the image paths
@@ -21,15 +22,6 @@ const DefaultIcon = L.icon({
   shadowSize: [41, 41],
 })
 
-/** Format a price value in EUR */
-function formatPrice(price: number): string {
-  return new Intl.NumberFormat('pt-PT', {
-    style: 'currency',
-    currency: 'EUR',
-    maximumFractionDigits: 0,
-  }).format(price)
-}
-
 /** Build a human-readable title from GeoJSON properties */
 function buildTitle(p: MapPropertiesResponse['features'][number]['properties']): string {
   const type = p.property_type === 'House' ? 'Moradia' : p.property_type === 'Apartment' ? 'Apartamento' : p.property_type === 'Land' ? 'Terreno' : p.property_type
@@ -44,9 +36,8 @@ function popupContent(p: MapPropertiesResponse['features'][number]['properties']
     ? `<img src="${p.thumbnail}" alt="${p.id}" style="width:160px;height:120px;object-fit:cover;border-radius:6px;margin-bottom:6px;" />`
     : `<div style="width:160px;height:120px;background:#e5e7eb;border-radius:6px;margin-bottom:6px;display:flex;align-items:center;justify-content:center;color:#6b7280;font-size:12px;">Sem foto</div>`
 
-  const price = p.price != null
-    ? `<div style="font-size:15px;font-weight:700;color:#2f7fa3;">${formatPrice(p.price)}</div>`
-    : ''
+  const transaction = p.price_type === 'Rent' ? 'rent' : 'sale'
+  const price = `<div style="font-size:15px;font-weight:700;color:#2f7fa3;">${formatListingPrice(p.price, transaction)}</div>`
 
   const title = buildTitle(p)
 

@@ -5,7 +5,7 @@
 export interface ListingSummary {
   id: string
   title: string
-  price: number
+  price: number | null
   type: 'house' | 'apartment' | 'land' | 'commercial' | 'other'
   propertyType?: string
   transaction: 'sale' | 'rent'
@@ -60,7 +60,7 @@ export interface Agency {
 export interface ListingDetail {
   id: string
   title: string
-  price: number
+  price: number | null
   type: 'house' | 'apartment' | 'land' | 'commercial' | 'other'
   propertyType?: string
   transaction: 'sale' | 'rent'
@@ -167,7 +167,7 @@ export interface MapPropertiesResponse {
     }
     properties: {
       id: string
-      price: number
+      price: number | null
       price_type: string
       currency: string
       property_type: string

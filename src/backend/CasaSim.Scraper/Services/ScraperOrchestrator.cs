@@ -4,6 +4,7 @@ using CasaSim.Api;
 using CasaSim.Scraper.Configuration;
 using CasaSim.Scraper.Diagnostics;
 using System.Diagnostics;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -238,6 +239,10 @@ internal sealed class ScraperOrchestrator : BackgroundService
 
         var stopwatch = Stopwatch.StartNew();
         var status = ScraperDiagnostics.StatusSuccess;
+        var scrapeMode = scraper is IIncrementalPropertyScraper && !ShouldRunFull(source)
+            ? ScrapeMode.Incremental
+            : ScrapeMode.Full;
+        activity?.SetTag("scrape.mode", scrapeMode.ToString());
 
         var logging = services.GetRequiredService<ScrapeLoggingService>();
         var agencyId = await logging.ResolveAgencyIdAsync(agencySlug, ct);
@@ -246,8 +251,8 @@ internal sealed class ScraperOrchestrator : BackgroundService
         IReadOnlyList<Core.Models.Property> properties;
         try
         {
-            await logging.RecordActivityAsync(logId, "scraping", "Fetching and parsing source listings.", ct: ct);
-            properties = await scraper.ScrapeAsync(ct);
+            await logging.RecordActivityAsync(logId, "scraping", $"Fetching and parsing source listings ({scrapeMode}).", ct: ct);
+            properties = await ScrapeWithModeAsync(scraper, source, agencySlug, scrapeMode, services, ct);
 
             await logging.RecordActivityAsync(
                 logId,
@@ -268,6 +273,7 @@ internal sealed class ScraperOrchestrator : BackgroundService
                 await logging.CompleteLogAsync(logId,
                     listingsFound: 0, listingsCreated: 0,
                     listingsUpdated: 0, listingsRemoved: 0, ct: ct);
+                await UpdateScraperSourceStateAsync(source, scrapeMode, new HashSet<string>(StringComparer.OrdinalIgnoreCase), ct);
                 return;
             }
 
@@ -284,14 +290,28 @@ internal sealed class ScraperOrchestrator : BackgroundService
                 .Select(p => p.ExternalId)
                 .Where(id => !string.IsNullOrWhiteSpace(id))
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
-            await logging.RecordActivityAsync(
-                logId,
-                "reconciling",
-                $"Upsert complete: {result.Created} created, {result.Updated} updated. Reconciling missing listings.",
-                currentCount: result.Created + result.Updated,
-                totalCount: properties.Count,
-                ct: ct);
-            var removed = await upsertService.MarkMissingListingsRemovedAsync(agencySlug, seenExternalIds, logId, ct);
+            var removed = 0;
+            if (scrapeMode == ScrapeMode.Full)
+            {
+                await logging.RecordActivityAsync(
+                    logId,
+                    "reconciling",
+                    $"Upsert complete: {result.Created} created, {result.Updated} updated. Reconciling missing listings.",
+                    currentCount: result.Created + result.Updated,
+                    totalCount: properties.Count,
+                    ct: ct);
+                removed = await upsertService.MarkMissingListingsRemovedAsync(agencySlug, seenExternalIds, logId, ct);
+            }
+            else
+            {
+                await logging.RecordActivityAsync(
+                    logId,
+                    "reconciling",
+                    $"Upsert complete: {result.Created} created, {result.Updated} updated. Skipped removal reconciliation for incremental run.",
+                    currentCount: result.Created + result.Updated,
+                    totalCount: properties.Count,
+                    ct: ct);
+            }
 
             _logger.LogInformation(
                 "{Agency}: {Created} created, {Updated} updated, {Skipped} skipped, {Removed} removed",
@@ -317,6 +337,8 @@ internal sealed class ScraperOrchestrator : BackgroundService
                 listingsUpdated: result.Updated,
                 listingsRemoved: removed,
                 ct: ct);
+
+            await UpdateScraperSourceStateAsync(source, scrapeMode, seenExternalIds, ct);
         }
         catch (Exception ex)
         {
@@ -382,6 +404,82 @@ internal sealed class ScraperOrchestrator : BackgroundService
             activity?.SetTag(ScraperDiagnostics.TagStatus, status);
             activity?.SetTag("duration_ms", stopwatch.ElapsedMilliseconds);
         }
+    }
+
+    private static bool ShouldRunFull(ScraperSource source)
+    {
+        if (source.ManualRunRequestedAt is not null || source.ForceFullScrape)
+            return true;
+
+        return source.LastFullScrapeAt is null ||
+               DateTimeOffset.UtcNow - source.LastFullScrapeAt.Value >= TimeSpan.FromDays(1);
+    }
+
+    private async Task<IReadOnlyList<Core.Models.Property>> ScrapeWithModeAsync(
+        IPropertyScraper scraper,
+        ScraperSource source,
+        string agencySlug,
+        ScrapeMode scrapeMode,
+        IServiceProvider services,
+        CancellationToken ct)
+    {
+        if (scraper is not IIncrementalPropertyScraper incremental)
+            return await scraper.ScrapeAsync(ct);
+
+        var knownExternalIds = await LoadKnownExternalIdsAsync(services, agencySlug, ct);
+        var request = new ScrapeRequest(
+            scrapeMode,
+            knownExternalIds,
+            source.IncrementalKnownListingThreshold > 0 ? source.IncrementalKnownListingThreshold : 10);
+
+        return await incremental.ScrapeAsync(request, ct);
+    }
+
+    private static async Task<IReadOnlySet<string>> LoadKnownExternalIdsAsync(
+        IServiceProvider services,
+        string agencySlug,
+        CancellationToken ct)
+    {
+        var db = services.GetRequiredService<AppDbContext>();
+        var knownIds = await db.Listings
+            .AsNoTracking()
+            .Where(l => l.Agency != null && l.Agency.Slug == agencySlug)
+            .Where(l => l.Status != ListingStatus.Removed && l.Status != ListingStatus.Archived)
+            .Select(l => l.ExternalId)
+            .ToListAsync(ct);
+
+        return knownIds
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+    }
+
+    private async Task UpdateScraperSourceStateAsync(
+        ScraperSource source,
+        ScrapeMode scrapeMode,
+        IReadOnlySet<string> seenExternalIds,
+        CancellationToken ct)
+    {
+        if (source.Id == Guid.Empty)
+            return;
+
+        using var scope = _scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetService<AppDbContext>();
+        if (db is null)
+            return;
+
+        var latestKnown = seenExternalIds
+            .Take(100)
+            .ToArray();
+        var latestKnownJson = JsonSerializer.Serialize(latestKnown);
+        var now = DateTimeOffset.UtcNow;
+
+        await db.ScraperSources
+            .Where(s => s.Id == source.Id)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(s => s.LastFullScrapeAt, scrapeMode == ScrapeMode.Full ? now : source.LastFullScrapeAt)
+                .SetProperty(s => s.LatestKnownExternalIdsJson, latestKnownJson)
+                .SetProperty(s => s.ForceFullScrape, false)
+                .SetProperty(s => s.UpdatedAt, now), ct);
     }
 
     /// <summary>

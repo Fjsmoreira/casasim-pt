@@ -123,20 +123,83 @@ public sealed class ListingUpsertServiceTests
     // ──────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task UpsertAsync_Updates_Existing_Listing()
+    public async Task UpsertAsync_Skips_Unchanged_Existing_Listing_And_Refreshes_LastSeen()
+    {
+        var db = CreateDb();
+        var svc = CreateService(db);
+        var scrapeLogId = Guid.NewGuid();
+        db.ScrapeLogs.Add(new ScrapeLog
+        {
+            Id = scrapeLogId,
+            SourceName = "Remax",
+            Status = ScrapeStatus.Started,
+            StartedAt = SeedTime,
+            CreatedAt = SeedTime,
+            UpdatedAt = SeedTime,
+            FirstSeenAt = SeedTime,
+            LastSeenAt = SeedTime,
+        });
+        await db.SaveChangesAsync();
+
+        // Create first
+        var result1 = await svc.UpsertAsync(MakeProperty(), "remax-pombal", scrapeLogId);
+        await db.SaveChangesAsync();
+        Assert.Equal(ListingUpsertAction.Created, result1.Action);
+
+        var listingBefore = await db.Listings.AsNoTracking().SingleAsync(l => l.Id == result1.ListingId);
+        await Task.Delay(10);
+
+        // Second identical call detects existing -> returns Skipped action.
+        var result2 = await svc.UpsertAsync(MakeProperty(), "remax-pombal", scrapeLogId);
+        await db.SaveChangesAsync();
+        Assert.Equal(ListingUpsertAction.Skipped, result2.Action);
+        Assert.Equal(result1.ListingId, result2.ListingId);
+
+        var listingAfter = await db.Listings.AsNoTracking().SingleAsync(l => l.Id == result1.ListingId);
+        Assert.Equal(listingBefore.UpdatedAt, listingAfter.UpdatedAt);
+        Assert.True(listingAfter.LastSeenAt >= listingBefore.LastSeenAt);
+
+        var changes = await db.ScrapeListingChanges
+            .Where(c => c.ScrapeLogId == scrapeLogId)
+            .ToListAsync();
+        Assert.Single(changes);
+        Assert.Equal(ScrapeListingChangeAction.Created, changes[0].Action);
+    }
+
+    [Fact]
+    public async Task UpsertAsync_Updates_Existing_Listing_When_Field_Changes()
     {
         var db = CreateDb();
         var svc = CreateService(db);
 
-        // Create first
         var result1 = await svc.UpsertAsync(MakeProperty(), "remax-pombal");
         await db.SaveChangesAsync();
-        Assert.Equal(ListingUpsertAction.Created, result1.Action);
 
-        // Second call detects existing -> returns Updated action
-        var result2 = await svc.UpsertAsync(MakeProperty(), "remax-pombal");
+        var changed = MakeProperty();
+        changed.Price = 175000m;
+        var result2 = await svc.UpsertAsync(changed, "remax-pombal");
+        await db.SaveChangesAsync();
+
         Assert.Equal(ListingUpsertAction.Updated, result2.Action);
         Assert.Equal(result1.ListingId, result2.ListingId);
+        var listing = await db.Listings.AsNoTracking().SingleAsync(l => l.Id == result1.ListingId);
+        Assert.Equal(175000m, listing.Price);
+    }
+
+    [Fact]
+    public async Task UpsertAsync_Maps_Zero_Price_To_Null()
+    {
+        var db = CreateDb();
+        var svc = CreateService(db);
+        var property = MakeProperty();
+        property.Price = 0m;
+
+        var result = await svc.UpsertAsync(property, "remax-pombal");
+        await db.SaveChangesAsync();
+
+        Assert.Equal(ListingUpsertAction.Created, result.Action);
+        var listing = await db.Listings.AsNoTracking().SingleAsync(l => l.Id == result.ListingId);
+        Assert.Null(listing.Price);
     }
 
     // ──────────────────────────────────────────────────────────

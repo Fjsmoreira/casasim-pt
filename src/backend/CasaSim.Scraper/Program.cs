@@ -40,6 +40,7 @@ var host = Host.CreateDefaultBuilder(args)
         // Scraper source configuration (per-source interval / enabled)
         services.Configure<Dictionary<string, ScraperSourceOptions>>(
             ctx.Configuration.GetSection("ScraperSources"));
+        services.Configure<AiOptions>(ctx.Configuration.GetSection("Ai"));
 
         // Scraper services
         services.AddScoped<ScrapeLoggingService>();
@@ -67,9 +68,11 @@ var host = Host.CreateDefaultBuilder(args)
         services.AddScoped<Century21ListingParser>();
         services.AddScoped<EraListingParser>();
         services.AddScoped<ListingUpsertService>();
+        services.AddScoped<IAiListingAnalyzer, OpenAiCompatibleListingAnalyzer>();
 
         // Background orchestrator (PeriodicTimer-based)
         services.AddHostedService<ScraperOrchestrator>();
+        services.AddHostedService<AiEnrichmentService>();
 
         // ── OpenTelemetry ─────────────────────────────────────
         var otelResourceBuilder = ResourceBuilder.CreateDefault()

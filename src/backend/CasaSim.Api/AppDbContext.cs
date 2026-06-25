@@ -15,6 +15,7 @@ public sealed class AppDbContext : DbContext
     public DbSet<ScraperSource> ScraperSources => Set<ScraperSource>();
     public DbSet<ScrapeListingChange> ScrapeListingChanges => Set<ScrapeListingChange>();
     public DbSet<ScrapeRunActivity> ScrapeRunActivities => Set<ScrapeRunActivity>();
+    public DbSet<ListingAiEnrichment> ListingAiEnrichments => Set<ListingAiEnrichment>();
 
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
@@ -31,6 +32,7 @@ public sealed class AppDbContext : DbContext
         ConfigureScraperSource(modelBuilder.Entity<ScraperSource>());
         ConfigureScrapeListingChange(modelBuilder.Entity<ScrapeListingChange>());
         ConfigureScrapeRunActivity(modelBuilder.Entity<ScrapeRunActivity>());
+        ConfigureListingAiEnrichment(modelBuilder.Entity<ListingAiEnrichment>());
     }
 
     private static void ConfigureAgency(EntityTypeBuilder<Agency> entity)
@@ -308,6 +310,12 @@ public sealed class AppDbContext : DbContext
         entity.Property(e => e.TargetDescription)
               .HasMaxLength(1000);
 
+        entity.Property(e => e.LatestKnownExternalIdsJson)
+              .HasColumnType("jsonb");
+
+        entity.Property(e => e.IncrementalKnownListingThreshold)
+              .HasDefaultValue(10);
+
         entity.HasOne(e => e.Agency)
               .WithMany()
               .HasForeignKey(e => e.AgencyId)
@@ -428,5 +436,57 @@ public sealed class AppDbContext : DbContext
 
         entity.HasIndex(e => new { e.ScrapeLogId, e.CreatedAt });
         entity.HasIndex(e => e.CreatedAt);
+    }
+
+    private static void ConfigureListingAiEnrichment(EntityTypeBuilder<ListingAiEnrichment> entity)
+    {
+        entity.ToTable("listing_ai_enrichment");
+        entity.HasKey(e => e.Id);
+
+        entity.Property(e => e.SourceHash)
+              .HasMaxLength(128)
+              .IsRequired();
+
+        entity.Property(e => e.GeneratedDescription)
+              .HasMaxLength(4000);
+
+        entity.Property(e => e.ExtractedFactsJson)
+              .HasColumnType("jsonb");
+
+        entity.Property(e => e.HighlightsJson)
+              .HasColumnType("jsonb");
+
+        entity.Property(e => e.DealScore)
+              .HasPrecision(5, 2);
+
+        entity.Property(e => e.DealReasonsJson)
+              .HasColumnType("jsonb");
+
+        entity.Property(e => e.WarningsJson)
+              .HasColumnType("jsonb");
+
+        entity.Property(e => e.Provider)
+              .HasMaxLength(50)
+              .IsRequired();
+
+        entity.Property(e => e.Model)
+              .HasMaxLength(100)
+              .IsRequired();
+
+        entity.Property(e => e.Status)
+              .HasConversion<string>()
+              .HasMaxLength(50);
+
+        entity.Property(e => e.LastError)
+              .HasMaxLength(2000);
+
+        entity.HasOne(e => e.Listing)
+              .WithMany()
+              .HasForeignKey(e => e.ListingId)
+              .OnDelete(DeleteBehavior.Cascade);
+
+        entity.HasIndex(e => e.ListingId).IsUnique();
+        entity.HasIndex(e => e.Status);
+        entity.HasIndex(e => e.NextRetryAt);
     }
 }

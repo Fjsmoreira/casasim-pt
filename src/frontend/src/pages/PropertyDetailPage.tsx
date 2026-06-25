@@ -9,6 +9,7 @@ import PropertyDescription from '@/components/PropertyDescription'
 import PropertyFeatures from '@/components/PropertyFeatures'
 import PropertyLocationMap, { LocationUnavailable } from '@/components/PropertyLocationMap'
 import AgencyCard from '@/components/AgencyCard'
+import { formatListingPrice } from '@/lib/utils'
 
 export default function PropertyDetailPage() {
   const { id } = useParams()
@@ -60,12 +61,6 @@ export default function PropertyDetailPage() {
     agencyPhone,
     agencyEmail,
   } = listing
-
-  const formatter = new Intl.NumberFormat('pt-PT', {
-    style: 'currency',
-    currency: 'EUR',
-    maximumFractionDigits: 0,
-  })
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -124,7 +119,7 @@ export default function PropertyDetailPage() {
           latitude={latitude}
           longitude={longitude}
           title={title}
-          price={formatter.format(price)}
+          price={formatListingPrice(price, transaction)}
         />
       ) : (
         <LocationUnavailable />
