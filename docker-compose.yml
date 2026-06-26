@@ -65,6 +65,13 @@ services:
     environment:
       ConnectionStrings__DefaultConnection: Host=db;Port=5432;Database=casasim;Username=${POSTGRES_USER:-casasim};Password=${POSTGRES_PASSWORD:-changeme}
       DOTNET_ENVIRONMENT: Production
+      Ai__Enabled: "true"
+      Ai__Provider: ${Ai__Provider:-DeepSeek}
+      Ai__Endpoint: ${Ai__Endpoint:-https://api.deepseek.com}
+      Ai__Model: ${Ai__Model:-deepseek-chat}
+      AI_API_KEY: ${AI_API_KEY:-}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       # Observability — set OTEL_EXPORTER_OTLP_ENDPOINT to activate (default: no export)
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
       OpenTelemetry__Otlp__Endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
