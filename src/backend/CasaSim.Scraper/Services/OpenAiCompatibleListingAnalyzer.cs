@@ -119,7 +119,7 @@ public sealed class OpenAiCompatibleListingAnalyzer : IAiListingAnalyzer
         if (string.IsNullOrWhiteSpace(content))
             throw new InvalidOperationException("AI response did not include text content.");
 
-        using var doc = JsonDocument.Parse(content);
+        using var doc = JsonDocument.Parse(ExtractJsonContent(content));
         var root = doc.RootElement;
         var description = root.GetProperty("generatedDescription").GetString();
         if (string.IsNullOrWhiteSpace(description))
@@ -138,5 +138,32 @@ public sealed class OpenAiCompatibleListingAnalyzer : IAiListingAnalyzer
             AiEnrichmentService.GetDealLabel(deterministicDealScore),
             root.GetProperty("dealReasons").GetRawText(),
             root.GetProperty("warnings").GetRawText());
+    }
+
+    internal static string ExtractJsonContent(string content)
+    {
+        var json = content.Trim();
+        if (json.StartsWith("```", StringComparison.Ordinal))
+        {
+            var firstLineEnd = json.IndexOf('\n');
+            if (firstLineEnd >= 0)
+                json = json[(firstLineEnd + 1)..];
+            else
+                json = json[3..];
+
+            json = json.Trim();
+            if (json.EndsWith("```", StringComparison.Ordinal))
+                json = json[..^3].Trim();
+        }
+
+        if (json.Length > 0 && json[0] is not ('{' or '['))
+        {
+            var objectStart = json.IndexOf('{');
+            var objectEnd = json.LastIndexOf('}');
+            if (objectStart >= 0 && objectEnd > objectStart)
+                json = json[objectStart..(objectEnd + 1)].Trim();
+        }
+
+        return json;
     }
 }
