@@ -1,6 +1,6 @@
 # CasaSim.pt
 
-CasaSim.pt is a property aggregator for Pombal, Portugal. It collects listings from local real-estate agencies and exposes them through a searchable React application with an interactive map.
+CasaSim.pt is a property aggregator for Pombal, Portugal. It collects listings from local real-estate agencies and exposes them through a searchable React application.
 
 - Product domain: `casasim.pt`
 - Repository: `github.com/Fjsmoreira/casasim-pt`
@@ -235,6 +235,6 @@ OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317 docker compose --profile 
 ## Stack
 
 - Backend: .NET 10, ASP.NET Core controllers, EF Core, Npgsql, Npgsql.NetTopologySuite, Serilog.
-- Frontend: React 19, TypeScript, Vite, Tailwind CSS, TanStack Query, Zustand, Leaflet, React Router.
+- Frontend: React 19, TypeScript, Vite, Tailwind CSS, TanStack Query, Zustand, React Router.
 - Database: PostgreSQL 16 with PostGIS.
 - Infrastructure: Docker Compose, Nginx reverse proxy, Coolify deployment.

@@ -21,8 +21,6 @@ public sealed class ListingDetailDto
     public string? Parish { get; init; }
     public string? District { get; init; }
     public string? Description { get; init; }
-    public double? Latitude { get; init; }
-    public double? Longitude { get; init; }
 
     // --- Details ---
     public int? Bedrooms { get; init; }
@@ -37,6 +35,7 @@ public sealed class ListingDetailDto
 
     // --- Features ---
     public List<string> Features { get; init; } = [];
+    public ListingAiDto? Ai { get; init; }
 
     // --- Source / External ---
     public string? SourceUrl { get; init; }

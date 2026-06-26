@@ -29,7 +29,8 @@ public sealed class ListingQueryService : IListingQueryService
         IQueryable<Listing> query = _db.Listings
             .AsNoTracking()
             .Include(l => l.Agency)
-            .Include(l => l.Images.Where(i => i.IsPrimary));
+            .Include(l => l.Location)
+            .Include(l => l.Images);
 
         // ── Filters ──────────────────────────────────────────
         query = ApplyFilters(query, validated);
@@ -46,66 +47,63 @@ public sealed class ListingQueryService : IListingQueryService
             .Take(validated.PageSize);
 
         // ── Project + execute ────────────────────────────────
-        var items = await query
-            .Select(l => new ListingSummaryDto
+        var listings = await query.ToListAsync(ct);
+        var listingIds = listings.Select(l => l.Id).ToArray();
+        var aiByListingId = await _db.ListingAiEnrichments
+            .AsNoTracking()
+            .Where(e => listingIds.Contains(e.ListingId))
+            .ToDictionaryAsync(e => e.ListingId, ct);
+
+        var items = listings
+            .Select(l =>
             {
-                Id = l.Id,
-                Title = l.Title,
-                Price = l.Price,
-                PriceType = l.PriceType.ToString(),
-                Currency = l.Currency,
-                PropertyType = l.PropertyType.ToString(),
-                Status = l.Status.ToString(),
-                City = l.City,
-                Parish = l.Location != null ? l.Location.Parish : null,
-                Bedrooms = l.Bedrooms,
-                Bathrooms = l.Bathrooms,
-                AreaM2 = l.AreaM2,
-                LandAreaM2 = l.LandAreaM2,
-                Agency = l.Agency == null
-                    ? null
-                    : new AgencyDto
-                    {
-                        Id = l.Agency.Id,
-                        Name = l.Agency.Name,
-                        Slug = l.Agency.Slug,
-                        WebsiteUrl = l.Agency.WebsiteUrl,
-                        ContactEmail = l.Agency.ContactEmail,
-                        ContactPhone = l.Agency.ContactPhone,
-                    },
-                PrimaryImage = l.Images
-                    .Where(i => i.IsPrimary)
-                    .Select(i => new ListingImageDto
-                    {
-                        Id = i.Id,
-                        Url = i.Url,
-                        ThumbnailUrl = i.ThumbnailUrl,
-                        AltText = i.AltText,
-                        IsPrimary = i.IsPrimary,
-                        SortOrder = i.SortOrder,
-                    })
-                    .FirstOrDefault(),
-                Images = l.Images
-                    .OrderBy(i => i.IsPrimary ? 0 : 1)
-                    .ThenBy(i => i.SortOrder)
-                    .Take(3)
-                    .Select(i => new ListingImageDto
-                    {
-                        Id = i.Id,
-                        Url = i.Url,
-                        ThumbnailUrl = i.ThumbnailUrl,
-                        AltText = i.AltText,
-                        IsPrimary = i.IsPrimary,
-                        SortOrder = i.SortOrder,
-                    })
-                    .ToList(),
-                PublishedAt = l.PublishedAt,
-                FirstSeenAt = l.FirstSeenAt,
-                LastSeenAt = l.LastSeenAt,
-                CreatedAt = l.CreatedAt,
-                UpdatedAt = l.UpdatedAt,
+                aiByListingId.TryGetValue(l.Id, out var enrichment);
+                return new ListingSummaryDto
+                {
+                    Id = l.Id,
+                    Title = l.Title,
+                    Price = l.Price,
+                    PriceType = l.PriceType.ToString(),
+                    Currency = l.Currency,
+                    PropertyType = l.PropertyType.ToString(),
+                    Status = l.Status.ToString(),
+                    City = l.City,
+                    Parish = l.Location?.Parish,
+                    Bedrooms = l.Bedrooms,
+                    Bathrooms = l.Bathrooms,
+                    AreaM2 = l.AreaM2,
+                    LandAreaM2 = l.LandAreaM2,
+                    Agency = l.Agency == null
+                        ? null
+                        : new AgencyDto
+                        {
+                            Id = l.Agency.Id,
+                            Name = l.Agency.Name,
+                            Slug = l.Agency.Slug,
+                            WebsiteUrl = l.Agency.WebsiteUrl,
+                            ContactEmail = l.Agency.ContactEmail,
+                            ContactPhone = l.Agency.ContactPhone,
+                        },
+                    PrimaryImage = l.Images
+                        .Where(i => i.IsPrimary)
+                        .OrderBy(i => i.SortOrder)
+                        .Select(ToImageDto)
+                        .FirstOrDefault(),
+                    Images = l.Images
+                        .OrderBy(i => i.IsPrimary ? 0 : 1)
+                        .ThenBy(i => i.SortOrder)
+                        .Take(3)
+                        .Select(ToImageDto)
+                        .ToList(),
+                    Ai = ListingAiDtoMapper.FromEnrichment(enrichment),
+                    PublishedAt = l.PublishedAt,
+                    FirstSeenAt = l.FirstSeenAt,
+                    LastSeenAt = l.LastSeenAt,
+                    CreatedAt = l.CreatedAt,
+                    UpdatedAt = l.UpdatedAt,
+                };
             })
-            .ToListAsync(ct);
+            .ToList();
 
         return new PagedResult<ListingSummaryDto>
         {
@@ -143,6 +141,7 @@ public sealed class ListingQueryService : IListingQueryService
             MinAreaM2 = request.MinAreaM2,
             Locality = string.IsNullOrWhiteSpace(request.Locality) ? null : request.Locality.Trim(),
             AgencySlug = string.IsNullOrWhiteSpace(request.AgencySlug) ? null : request.AgencySlug,
+            DealLabel = NormalizeDealLabel(request.DealLabel),
             SortBy = sortBy,
             SortDirection = sortDir,
             Page = page,
@@ -150,7 +149,7 @@ public sealed class ListingQueryService : IListingQueryService
         };
     }
 
-    private static IQueryable<Listing> ApplyFilters(IQueryable<Listing> query, ValidatedSearchRequest v)
+    private IQueryable<Listing> ApplyFilters(IQueryable<Listing> query, ValidatedSearchRequest v)
     {
         // Default: only active listings
         query = query.Where(l => l.Status == ListingStatus.Active);
@@ -199,6 +198,12 @@ public sealed class ListingQueryService : IListingQueryService
         if (v.AgencySlug is not null)
             query = query.Where(l => l.Agency != null && l.Agency.Slug == v.AgencySlug);
 
+        if (v.DealLabel is not null)
+            query = query.Where(l => _db.ListingAiEnrichments.Any(e =>
+                e.ListingId == l.Id &&
+                e.Status == ListingAiEnrichmentStatus.Succeeded &&
+                e.DealLabel == v.DealLabel));
+
         return query;
     }
 
@@ -233,5 +238,29 @@ public sealed class ListingQueryService : IListingQueryService
         };
 
         return query;
+    }
+
+    private static ListingImageDto ToImageDto(ListingImage image) => new()
+    {
+        Id = image.Id,
+        Url = image.Url,
+        ThumbnailUrl = image.ThumbnailUrl,
+        AltText = image.AltText,
+        IsPrimary = image.IsPrimary,
+        SortOrder = image.SortOrder,
+    };
+
+    private static string? NormalizeDealLabel(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return null;
+
+        return value.Trim().ToLowerInvariant() switch
+        {
+            "gooddeal" or "good" => "GoodDeal",
+            "neutral" => "Neutral",
+            "baddeal" or "bad" => "BadDeal",
+            _ => null,
+        };
     }
 }

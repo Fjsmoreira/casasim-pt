@@ -17,6 +17,11 @@ const PROPERTY_TYPES = [
   { value: 'commercial', label: 'Comercial' },
 ] as const
 
+const DEAL_LABELS = [
+  { value: 'GoodDeal', label: 'Bom negócio' },
+  { value: 'BadDeal', label: 'Mau negócio' },
+] as const
+
 const inputClass = 'h-10 w-full rounded border border-slate-300 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-[#007ca8] focus:ring-2 focus:ring-sky-100'
 
 function FilterChips() {
@@ -29,6 +34,7 @@ function FilterChips() {
     store.bedrooms !== undefined && { label: `${store.bedrooms}+ quartos`, clear: () => store.setBedrooms(undefined) },
     store.minAreaM2 !== undefined && { label: `${store.minAreaM2}+ m²`, clear: () => store.setMinAreaM2(undefined) },
     store.agencySlug && { label: 'Agência selecionada', clear: () => store.setAgencySlug(undefined) },
+    store.dealLabel && { label: DEAL_LABELS.find((deal) => deal.value === store.dealLabel)?.label ?? store.dealLabel, clear: () => store.setDealLabel(undefined) },
   ].filter(Boolean) as { label: string; clear: () => void }[]
 
   if (!chips.length) return null
@@ -97,6 +103,12 @@ function MoreFilters({ compact = false }: { compact?: boolean }) {
             <select value={store.agencySlug ?? ''} onChange={(e) => store.setAgencySlug(e.target.value || undefined)} className={inputClass + ' mt-1'}>
               <option value="">Todas as agências</option>
               {agencies.map((agency) => <option key={agency.id} value={agency.slug}>{agency.name}</option>)}
+            </select>
+          </label>
+          <label className="block text-sm font-medium text-gray-700">Análise AI
+            <select value={store.dealLabel ?? ''} onChange={(e) => store.setDealLabel((e.target.value || undefined) as typeof store.dealLabel)} className={inputClass + ' mt-1'}>
+              <option value="">Todos</option>
+              {DEAL_LABELS.map((deal) => <option key={deal.value} value={deal.value}>{deal.label}</option>)}
             </select>
           </label>
         </div>

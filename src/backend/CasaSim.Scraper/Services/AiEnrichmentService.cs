@@ -62,7 +62,7 @@ public sealed class AiEnrichmentService : BackgroundService
         var now = DateTimeOffset.UtcNow;
 
         var candidates = await db.Listings
-            .AsNoTracking()
+            .AsTracking()
             .Include(l => l.Agency)
             .Include(l => l.Location)
             .Where(l => l.Status == ListingStatus.Active)
@@ -109,9 +109,12 @@ public sealed class AiEnrichmentService : BackgroundService
 
                 enrichment.SourceHash = sourceHash;
                 enrichment.GeneratedDescription = analysis.GeneratedDescription;
+                enrichment.CorrectedFactsJson = analysis.CorrectedFactsJson;
+                enrichment.CorrectionAuditJson = ApplyCorrections(listing, analysis.CorrectedFactsJson);
                 enrichment.ExtractedFactsJson = analysis.ExtractedFactsJson;
                 enrichment.HighlightsJson = analysis.HighlightsJson;
                 enrichment.DealScore = analysis.DealScore;
+                enrichment.DealLabel = analysis.DealLabel;
                 enrichment.DealReasonsJson = analysis.DealReasonsJson;
                 enrichment.WarningsJson = analysis.WarningsJson;
                 enrichment.Provider = options.Provider;
@@ -188,6 +191,151 @@ public sealed class AiEnrichmentService : BackgroundService
             score -= 5m;
 
         return Math.Clamp(score, 0m, 100m);
+    }
+
+    internal static string GetDealLabel(decimal score) => score switch
+    {
+        >= 70m => "GoodDeal",
+        <= 40m => "BadDeal",
+        _ => "Neutral",
+    };
+
+    private static string? ApplyCorrections(Listing listing, string correctedFactsJson)
+    {
+        using var doc = JsonDocument.Parse(correctedFactsJson);
+        var root = doc.RootElement;
+        var facts = root.TryGetProperty("correctedFacts", out var nestedFacts) ? nestedFacts : root;
+        var confidence = root.TryGetProperty("fieldConfidence", out var fieldConfidence) ? fieldConfidence : default;
+        var changes = new Dictionary<string, object?>();
+
+        if (TryGetString(facts, "propertyType", out var propertyType) &&
+            TryGetConfidence(confidence, "propertyType") >= 0.75m &&
+            Enum.TryParse<ListingPropertyType>(propertyType, ignoreCase: true, out var parsedType) &&
+            listing.PropertyType is ListingPropertyType.Unknown or ListingPropertyType.Other)
+        {
+            changes["propertyType"] = new { before = listing.PropertyType.ToString(), after = parsedType.ToString(), confidence = TryGetConfidence(confidence, "propertyType") };
+            listing.PropertyType = parsedType;
+        }
+
+        if (TryGetString(facts, "transaction", out var transaction) &&
+            TryGetConfidence(confidence, "transaction") >= 0.75m &&
+            Enum.TryParse<ListingPriceType>(transaction, ignoreCase: true, out var parsedPriceType) &&
+            listing.PriceType == ListingPriceType.Unknown)
+        {
+            changes["priceType"] = new { before = listing.PriceType.ToString(), after = parsedPriceType.ToString(), confidence = TryGetConfidence(confidence, "transaction") };
+            listing.PriceType = parsedPriceType;
+        }
+
+        ApplyIntCorrection(changes, facts, confidence, "bedrooms", listing.Bedrooms, value => listing.Bedrooms = value);
+        ApplyIntCorrection(changes, facts, confidence, "bathrooms", listing.Bathrooms, value => listing.Bathrooms = value);
+        ApplyDecimalCorrection(changes, facts, confidence, "areaM2", listing.AreaM2, value => listing.AreaM2 = value);
+        ApplyDecimalCorrection(changes, facts, confidence, "landAreaM2", listing.LandAreaM2, value => listing.LandAreaM2 = value);
+
+        if (TryGetString(facts, "locality", out var locality) &&
+            TryGetConfidence(confidence, "locality") >= 0.75m &&
+            !string.IsNullOrWhiteSpace(locality) &&
+            string.IsNullOrWhiteSpace(listing.Location?.Parish))
+        {
+            listing.Location ??= new Location
+            {
+                Municipality = listing.City ?? "Pombal",
+                District = "Leiria",
+                CountryCode = "PT",
+                CreatedAt = DateTimeOffset.UtcNow,
+                FirstSeenAt = DateTimeOffset.UtcNow,
+                LastSeenAt = DateTimeOffset.UtcNow,
+            };
+            changes["locality"] = new { before = listing.Location.Parish, after = locality, confidence = TryGetConfidence(confidence, "locality") };
+            listing.Location.Parish = locality;
+            listing.Location.UpdatedAt = DateTimeOffset.UtcNow;
+        }
+
+        if (changes.Count == 0)
+            return null;
+
+        listing.UpdatedAt = DateTimeOffset.UtcNow;
+        return JsonSerializer.Serialize(changes);
+    }
+
+    private static void ApplyIntCorrection(
+        IDictionary<string, object?> changes,
+        JsonElement facts,
+        JsonElement confidence,
+        string field,
+        int? current,
+        Action<int> apply)
+    {
+        if (current is > 0 || TryGetConfidence(confidence, field) < 0.75m || !TryGetInt(facts, field, out var value) || value <= 0)
+            return;
+
+        changes[field] = new { before = current, after = value, confidence = TryGetConfidence(confidence, field) };
+        apply(value);
+    }
+
+    private static void ApplyDecimalCorrection(
+        IDictionary<string, object?> changes,
+        JsonElement facts,
+        JsonElement confidence,
+        string field,
+        decimal? current,
+        Action<decimal> apply)
+    {
+        if (current is > 0 || TryGetConfidence(confidence, field) < 0.75m || !TryGetDecimal(facts, field, out var value) || value <= 0)
+            return;
+
+        changes[field] = new { before = current, after = value, confidence = TryGetConfidence(confidence, field) };
+        apply(value);
+    }
+
+    private static bool TryGetString(JsonElement element, string property, out string value)
+    {
+        value = string.Empty;
+        if (element.ValueKind != JsonValueKind.Object || !element.TryGetProperty(property, out var propertyElement) || propertyElement.ValueKind != JsonValueKind.String)
+            return false;
+
+        value = propertyElement.GetString() ?? string.Empty;
+        return !string.IsNullOrWhiteSpace(value);
+    }
+
+    private static bool TryGetInt(JsonElement element, string property, out int value)
+    {
+        value = 0;
+        if (element.ValueKind != JsonValueKind.Object || !element.TryGetProperty(property, out var propertyElement))
+            return false;
+
+        return propertyElement.ValueKind switch
+        {
+            JsonValueKind.Number => propertyElement.TryGetInt32(out value),
+            JsonValueKind.String => int.TryParse(propertyElement.GetString(), out value),
+            _ => false,
+        };
+    }
+
+    private static bool TryGetDecimal(JsonElement element, string property, out decimal value)
+    {
+        value = 0m;
+        if (element.ValueKind != JsonValueKind.Object || !element.TryGetProperty(property, out var propertyElement))
+            return false;
+
+        return propertyElement.ValueKind switch
+        {
+            JsonValueKind.Number => propertyElement.TryGetDecimal(out value),
+            JsonValueKind.String => decimal.TryParse(propertyElement.GetString(), out value),
+            _ => false,
+        };
+    }
+
+    private static decimal TryGetConfidence(JsonElement confidence, string property)
+    {
+        if (confidence.ValueKind != JsonValueKind.Object || !confidence.TryGetProperty(property, out var value))
+            return 0m;
+
+        return value.ValueKind switch
+        {
+            JsonValueKind.Number when value.TryGetDecimal(out var number) => Math.Clamp(number, 0m, 1m),
+            JsonValueKind.String when decimal.TryParse(value.GetString(), out var number) => Math.Clamp(number, 0m, 1m),
+            _ => 0m,
+        };
     }
 
     private static ListingAiInput ToAiInput(Listing listing) => new(

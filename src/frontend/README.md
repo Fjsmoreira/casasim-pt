@@ -15,7 +15,6 @@ Vite + React 19 + TypeScript frontend for the CasaSim property listing platform.
 
 - **React 19** with TypeScript 6 (strict mode)
 - **React Router 7** (BrowserRouter with Layout)
-- **Leaflet** + **react-leaflet** for maps
 - **Tailwind CSS 4** via Vite plugin
 - **Vite 8** with React plugin
 
@@ -30,7 +29,7 @@ src/
 │   └── Layout.tsx            # Shared layout wrapper
 └── pages/
     ├── HomePage.tsx          # / — landing page
-    ├── SearchPage.tsx        # /search — property search with map
+    ├── SearchPage.tsx        # /search — property search
     └── PropertyDetailPage.tsx # /property/:id — property details
 ```
 

@@ -11,6 +11,8 @@ interface PropertyHeaderProps {
   district?: string
   listingUrl?: string
   source?: string
+  dealBadge?: string
+  dealBadgeClassName?: string
 }
 
 export default function PropertyHeader({
@@ -23,6 +25,8 @@ export default function PropertyHeader({
   district,
   listingUrl,
   source,
+  dealBadge,
+  dealBadgeClassName,
 }: PropertyHeaderProps) {
   const locationParts = [parish, city, district].filter(Boolean) as string[]
   const pricePerM2 = formatPricePerM2(price, areaM2, transaction)
@@ -50,6 +54,11 @@ export default function PropertyHeader({
         {pricePerM2 && (
           <span className="text-sm font-medium text-gray-500">
             {pricePerM2}
+          </span>
+        )}
+        {dealBadge && (
+          <span className={cn('inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ring-1', dealBadgeClassName)}>
+            {dealBadge}
           </span>
         )}
       </div>

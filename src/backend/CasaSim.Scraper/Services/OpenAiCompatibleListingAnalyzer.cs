@@ -14,16 +14,37 @@ public sealed class OpenAiCompatibleListingAnalyzer : IAiListingAnalyzer
       "type": "object",
       "properties": {
         "generatedDescription": { "type": "string" },
-        "extractedFacts": {
+        "correctedFacts": {
           "type": "object",
           "additionalProperties": false,
           "properties": {
+            "propertyType": { "type": ["string", "null"] },
+            "transaction": { "type": ["string", "null"] },
+            "locality": { "type": ["string", "null"] },
+            "bedrooms": { "type": ["integer", "null"] },
+            "bathrooms": { "type": ["integer", "null"] },
+            "areaM2": { "type": ["number", "null"] },
+            "landAreaM2": { "type": ["number", "null"] },
             "condition": { "type": "string" },
-            "locationQuality": { "type": "string" },
-            "idealBuyer": { "type": "string" },
-            "renovationHint": { "type": "string" }
+            "renovationNeed": { "type": "string" }
           },
-          "required": ["condition", "locationQuality", "idealBuyer", "renovationHint"]
+          "required": ["propertyType", "transaction", "locality", "bedrooms", "bathrooms", "areaM2", "landAreaM2", "condition", "renovationNeed"]
+        },
+        "fieldConfidence": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "propertyType": { "type": "number" },
+            "transaction": { "type": "number" },
+            "locality": { "type": "number" },
+            "bedrooms": { "type": "number" },
+            "bathrooms": { "type": "number" },
+            "areaM2": { "type": "number" },
+            "landAreaM2": { "type": "number" },
+            "condition": { "type": "number" },
+            "renovationNeed": { "type": "number" }
+          },
+          "required": ["propertyType", "transaction", "locality", "bedrooms", "bathrooms", "areaM2", "landAreaM2", "condition", "renovationNeed"]
         },
         "highlights": {
           "type": "array",
@@ -38,7 +59,7 @@ public sealed class OpenAiCompatibleListingAnalyzer : IAiListingAnalyzer
           "items": { "type": "string" }
         }
       },
-      "required": ["generatedDescription", "extractedFacts", "highlights", "dealReasons", "warnings"],
+      "required": ["generatedDescription", "correctedFacts", "fieldConfidence", "highlights", "dealReasons", "warnings"],
       "additionalProperties": false
     }
     """);
@@ -75,7 +96,7 @@ public sealed class OpenAiCompatibleListingAnalyzer : IAiListingAnalyzer
     {
         var prompt = JsonSerializer.Serialize(new
         {
-            instructions = "Analyze this Portuguese real estate listing. Return only valid JSON matching this shape: { generatedDescription: string, extractedFacts: { condition: string, locationQuality: string, idealBuyer: string, renovationHint: string }, highlights: string[], dealReasons: string[], warnings: string[] }. Do not invent missing facts. Use warnings for uncertainty.",
+            instructions = "Analyze this Portuguese real estate listing in Portuguese. Return only valid JSON matching this shape: { generatedDescription: string, correctedFacts: { propertyType, transaction, locality, bedrooms, bathrooms, areaM2, landAreaM2, condition, renovationNeed }, fieldConfidence: { propertyType, transaction, locality, bedrooms, bathrooms, areaM2, landAreaM2, condition, renovationNeed }, highlights: string[], dealReasons: string[], warnings: string[] }. Correct facts only when directly supported by the listing text. Do not invent missing facts. Use null and low confidence for uncertainty. Use warnings for caveats, not factual claims.",
             deterministicDealScore,
             listing = input,
         });
@@ -106,9 +127,15 @@ public sealed class OpenAiCompatibleListingAnalyzer : IAiListingAnalyzer
 
         return new AiListingAnalysis(
             description,
-            root.GetProperty("extractedFacts").GetRawText(),
+            JsonSerializer.Serialize(new
+            {
+                correctedFacts = JsonSerializer.Deserialize<object>(root.GetProperty("correctedFacts").GetRawText()),
+                fieldConfidence = JsonSerializer.Deserialize<object>(root.GetProperty("fieldConfidence").GetRawText()),
+            }),
+            root.GetProperty("correctedFacts").GetRawText(),
             root.GetProperty("highlights").GetRawText(),
             deterministicDealScore,
+            AiEnrichmentService.GetDealLabel(deterministicDealScore),
             root.GetProperty("dealReasons").GetRawText(),
             root.GetProperty("warnings").GetRawText());
     }

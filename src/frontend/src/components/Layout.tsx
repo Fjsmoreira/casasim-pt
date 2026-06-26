@@ -1,4 +1,4 @@
-import { Heart, House, MapPinned, UserRound } from 'lucide-react'
+import { Heart, House, UserRound } from 'lucide-react'
 import { Outlet, Link } from 'react-router-dom'
 
 export default function Layout() {
@@ -16,7 +16,6 @@ export default function Layout() {
           </div>
           <div className="flex items-center gap-4 text-sm font-medium">
             <Link to="/" aria-label="Início" className="hidden items-center gap-1.5 sm:flex"><House className="size-4" />Início</Link>
-            <Link to="/map" aria-label="Mapa" className="hidden items-center gap-1.5 sm:flex"><MapPinned className="size-4" />Mapa</Link>
             <Link to="/" aria-label="Favoritos" className="flex items-center gap-1.5"><Heart className="size-4" /><span className="hidden sm:inline">Favoritos</span></Link>
             <Link to="/admin" aria-label="Conta" className="flex items-center gap-1.5"><UserRound className="size-4" /><span className="hidden sm:inline">Conta</span></Link>
           </div>

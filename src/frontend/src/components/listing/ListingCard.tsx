@@ -15,6 +15,12 @@ const TRANSACTION_LABELS: Record<string, string> = {
   rent: 'Arrendamento',
 }
 
+const DEAL_LABELS: Record<string, { label: string; className: string }> = {
+  GoodDeal: { label: 'Bom negócio', className: 'bg-emerald-50 text-emerald-700 ring-emerald-200' },
+  Neutral: { label: 'Neutro', className: 'bg-slate-50 text-slate-600 ring-slate-200' },
+  BadDeal: { label: 'Mau negócio', className: 'bg-rose-50 text-rose-700 ring-rose-200' },
+}
+
 function normalizeKey(value?: string) {
   return value ? value.charAt(0).toLowerCase() + value.slice(1) : undefined
 }
@@ -49,11 +55,12 @@ export default function ListingCard({ property }: ListingCardProps) {
   const pricePerM2 = formatPricePerM2(price, areaM2, transaction === 'rent' ? 'rent' : 'sale')
   const listedDate = formatListingDate(property.publishedAt ?? property.firstSeenAt ?? property.createdAt)
   const status = property.status && property.status.toLowerCase() !== 'active' ? property.status : null
+  const deal = property.ai?.dealLabel ? DEAL_LABELS[property.ai.dealLabel] : null
 
   return (
     <article className="group overflow-hidden rounded border border-slate-200 bg-white shadow-sm transition-all duration-200 hover:border-slate-300 hover:shadow-md">
       {/* Image */}
-      <div className="grid h-56 grid-cols-[2fr_1fr] gap-1 overflow-hidden bg-slate-100 sm:h-72">
+      <div className="relative grid h-56 grid-cols-[2fr_1fr] gap-1 overflow-hidden bg-slate-100 sm:h-72">
         {images[0] ? (
           <img
             src={images[0].thumbnailUrl || images[0].url}
@@ -74,6 +81,7 @@ export default function ListingCard({ property }: ListingCardProps) {
         </div>
         <span className="absolute left-3 top-3 rounded bg-[#4f8fb3] px-2 py-1 text-[11px] font-bold uppercase tracking-wide text-white">{transactionLabel}</span>
         {status && <span className="absolute left-3 top-11 rounded bg-slate-800/85 px-2 py-1 text-[11px] font-semibold text-white">{status}</span>}
+        {deal && <span className={`absolute bottom-3 left-3 rounded-full px-2.5 py-1 text-[11px] font-bold ring-1 ${deal.className}`}>{deal.label}</span>}
         <button type="button" aria-label="Adicionar aos favoritos" onClick={(event) => event.preventDefault()} className="absolute right-3 top-3 grid size-9 place-items-center rounded-full bg-white/95 text-sky-800 shadow-sm transition hover:bg-white"><Heart className="size-5" /></button>
       </div>
 

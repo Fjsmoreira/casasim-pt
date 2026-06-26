@@ -2,9 +2,11 @@ namespace CasaSim.Scraper.Services;
 
 public sealed record AiListingAnalysis(
     string GeneratedDescription,
+    string CorrectedFactsJson,
     string ExtractedFactsJson,
     string HighlightsJson,
     decimal DealScore,
+    string DealLabel,
     string DealReasonsJson,
     string WarningsJson);
 

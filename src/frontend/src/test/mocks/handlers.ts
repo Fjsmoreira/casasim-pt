@@ -1,5 +1,5 @@
 import { http, HttpResponse } from 'msw'
-import { mockListResponse, mockEmptyListResponse, mockListingDetail, mockGeoJson, mockEmptyGeoJson } from './data'
+import { mockListResponse, mockEmptyListResponse, mockListingDetail } from './data'
 
 export const handlers = [
   http.get('/api/agencies', () => HttpResponse.json([
@@ -47,18 +47,5 @@ export const handlers = [
     }
 
     return HttpResponse.json(mockListingDetail)
-  }),
-
-  // GET /api/listings/geojson — map page
-  http.get('/api/listings/geojson', ({ request }) => {
-    const url = new URL(request.url)
-    const swLat = url.searchParams.get('swLat')
-
-    // Return empty GeoJSON when given a specific query
-    if (swLat === '0') {
-      return HttpResponse.json(mockEmptyGeoJson)
-    }
-
-    return HttpResponse.json(mockGeoJson)
   }),
 ]

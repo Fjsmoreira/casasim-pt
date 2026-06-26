@@ -70,9 +70,16 @@ var host = Host.CreateDefaultBuilder(args)
         services.AddScoped<ListingUpsertService>();
         services.AddScoped<IAiListingAnalyzer, OpenAiCompatibleListingAnalyzer>();
 
-        // Background orchestrator (PeriodicTimer-based)
-        services.AddHostedService<ScraperOrchestrator>();
-        services.AddHostedService<AiEnrichmentService>();
+        if (!args.Contains("--rebuild-data", StringComparer.OrdinalIgnoreCase))
+        {
+            // Background orchestrator (PeriodicTimer-based)
+            services.AddHostedService<ScraperOrchestrator>();
+            services.AddHostedService<AiEnrichmentService>();
+        }
+        else
+        {
+            services.AddSingleton<Microsoft.Extensions.Hosting.IHostedService, AiEnrichmentService>();
+        }
 
         // ── OpenTelemetry ─────────────────────────────────────
         var otelResourceBuilder = ResourceBuilder.CreateDefault()
@@ -132,6 +139,18 @@ var host = Host.CreateDefaultBuilder(args)
         .Enrich.WithProperty("environment", ctx.HostingEnvironment.EnvironmentName)
         .WriteTo.Console(new JsonFormatter(renderMessage: true)))
     .Build();
+
+if (args.Contains("--rebuild-data", StringComparer.OrdinalIgnoreCase))
+{
+    if (!args.Contains("--confirm-drop", StringComparer.OrdinalIgnoreCase))
+    {
+        Log.Error("Refusing to rebuild data without --confirm-drop. This command drops and recreates the configured database.");
+        return;
+    }
+
+    Environment.ExitCode = await RebuildDataCommand.RunAsync(host);
+    return;
+}
 
 await host.RunAsync();
 }

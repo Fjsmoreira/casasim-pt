@@ -240,20 +240,7 @@ public sealed class AppDbContext : DbContext
         entity.Property(e => e.PostalCode)
               .HasMaxLength(20);
 
-        entity.Property(e => e.Geohash)
-              .HasMaxLength(20);
-
-        entity.Property(e => e.Latitude)
-              .HasPrecision(10, 7);
-
-        entity.Property(e => e.Longitude)
-              .HasPrecision(10, 7);
-
-        entity.Property(e => e.Coordinate)
-              .HasColumnType("geometry(Point, 4326)");
-
         entity.HasIndex(e => e.Municipality);
-        entity.HasIndex(e => e.Coordinate).HasMethod("GIST");
     }
 
     private static void ConfigureScrapeLog(EntityTypeBuilder<ScrapeLog> entity)
@@ -450,6 +437,12 @@ public sealed class AppDbContext : DbContext
         entity.Property(e => e.GeneratedDescription)
               .HasMaxLength(4000);
 
+        entity.Property(e => e.CorrectedFactsJson)
+              .HasColumnType("jsonb");
+
+        entity.Property(e => e.CorrectionAuditJson)
+              .HasColumnType("jsonb");
+
         entity.Property(e => e.ExtractedFactsJson)
               .HasColumnType("jsonb");
 
@@ -458,6 +451,9 @@ public sealed class AppDbContext : DbContext
 
         entity.Property(e => e.DealScore)
               .HasPrecision(5, 2);
+
+        entity.Property(e => e.DealLabel)
+              .HasMaxLength(20);
 
         entity.Property(e => e.DealReasonsJson)
               .HasColumnType("jsonb");

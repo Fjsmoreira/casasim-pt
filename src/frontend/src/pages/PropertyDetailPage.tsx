@@ -7,9 +7,17 @@ import PropertyHeader from '@/components/PropertyHeader'
 import PropertyFacts from '@/components/PropertyFacts'
 import PropertyDescription from '@/components/PropertyDescription'
 import PropertyFeatures from '@/components/PropertyFeatures'
-import PropertyLocationMap, { LocationUnavailable } from '@/components/PropertyLocationMap'
 import AgencyCard from '@/components/AgencyCard'
-import { formatListingPrice } from '@/lib/utils'
+
+const DEAL_LABELS: Record<string, { label: string; className: string }> = {
+  GoodDeal: { label: 'Bom negócio', className: 'bg-emerald-50 text-emerald-700 ring-emerald-200' },
+  Neutral: { label: 'Neutro', className: 'bg-slate-50 text-slate-600 ring-slate-200' },
+  BadDeal: { label: 'Mau negócio', className: 'bg-rose-50 text-rose-700 ring-rose-200' },
+}
+
+function normalizeKey(value?: string) {
+  return value ? value.charAt(0).toLowerCase() + value.slice(1) : undefined
+}
 
 export default function PropertyDetailPage() {
   const { id } = useParams()
@@ -41,8 +49,8 @@ export default function PropertyDetailPage() {
   const {
     title,
     price,
-    transaction,
-    type,
+    propertyType,
+    priceType,
     description,
     images,
     bedrooms,
@@ -54,13 +62,14 @@ export default function PropertyDetailPage() {
     district,
     features,
     sourceUrl,
-    latitude,
-    longitude,
     createdAt,
     agencyName,
     agencyPhone,
     agencyEmail,
   } = listing
+  const transaction = (normalizeKey(listing.transaction ?? priceType) === 'rent' ? 'rent' : 'sale') as 'sale' | 'rent'
+  const type = normalizeKey(listing.type ?? propertyType) ?? 'other'
+  const deal = listing.ai?.dealLabel ? DEAL_LABELS[listing.ai.dealLabel] : null
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -95,6 +104,8 @@ export default function PropertyDetailPage() {
         district={district}
         listingUrl={sourceUrl}
         source={agencyName}
+        dealBadge={deal?.label}
+        dealBadgeClassName={deal?.className}
       />
 
       {/* Facts grid */}
@@ -108,22 +119,34 @@ export default function PropertyDetailPage() {
       />
 
       {/* Description */}
+      {listing.ai?.summary && (
+        <section className="mb-8 rounded border border-sky-100 bg-sky-50/60 p-5">
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <h2 className="text-lg font-semibold text-gray-900">Resumo AI</h2>
+            {deal && <span className={`rounded-full px-2.5 py-1 text-xs font-bold ring-1 ${deal.className}`}>{deal.label}{listing.ai.dealScore != null ? ` · ${Math.round(listing.ai.dealScore)}/100` : ''}</span>}
+          </div>
+          <p className="text-sm leading-6 text-gray-700">{listing.ai.summary}</p>
+          {listing.ai.dealReasons.length > 0 && (
+            <ul className="mt-4 list-disc space-y-1 pl-5 text-sm text-gray-700">
+              {listing.ai.dealReasons.map((reason) => <li key={reason}>{reason}</li>)}
+            </ul>
+          )}
+        </section>
+      )}
+
       {description && <PropertyDescription description={description} />}
+
+      {listing.ai?.warnings && listing.ai.warnings.length > 0 && (
+        <section className="mb-8 rounded border border-amber-200 bg-amber-50 p-5">
+          <h2 className="mb-2 text-lg font-semibold text-gray-900">Notas AI</h2>
+          <ul className="list-disc space-y-1 pl-5 text-sm text-amber-900">
+            {listing.ai.warnings.map((warning) => <li key={warning}>{warning}</li>)}
+          </ul>
+        </section>
+      )}
 
       {/* Features */}
       {features && features.length > 0 && <PropertyFeatures features={features} />}
-
-      {/* Small location map */}
-      {latitude != null && longitude != null ? (
-        <PropertyLocationMap
-          latitude={latitude}
-          longitude={longitude}
-          title={title}
-          price={formatListingPrice(price, transaction)}
-        />
-      ) : (
-        <LocationUnavailable />
-      )}
 
       {/* Agency card */}
       <AgencyCard

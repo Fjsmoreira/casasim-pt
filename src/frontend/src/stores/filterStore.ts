@@ -10,6 +10,7 @@ export interface FilterState {
   transaction: string | undefined
   locality: string | undefined
   agencySlug: string | undefined
+  dealLabel: 'GoodDeal' | 'Neutral' | 'BadDeal' | undefined
   sortBy: string | undefined
   sortDirection: 'Asc' | 'Desc' | undefined
   mobileOpen: boolean
@@ -22,9 +23,10 @@ export interface FilterState {
   setTransaction: (val: string | undefined) => void
   setLocality: (val: string | undefined) => void
   setAgencySlug: (val: string | undefined) => void
+  setDealLabel: (val: 'GoodDeal' | 'Neutral' | 'BadDeal' | undefined) => void
   setSortBy: (val: string | undefined) => void
   setSortDirection: (val: 'Asc' | 'Desc' | undefined) => void
-  hydrate: (filters: Partial<Pick<FilterState, 'priceMin' | 'priceMax' | 'type' | 'bedrooms' | 'minAreaM2' | 'transaction' | 'locality' | 'agencySlug' | 'sortBy' | 'sortDirection'>>) => void
+  hydrate: (filters: Partial<Pick<FilterState, 'priceMin' | 'priceMax' | 'type' | 'bedrooms' | 'minAreaM2' | 'transaction' | 'locality' | 'agencySlug' | 'dealLabel' | 'sortBy' | 'sortDirection'>>) => void
   setMobileOpen: (val: boolean) => void
   clearFilters: () => void
   toParams: () => ListingsParams
@@ -39,6 +41,7 @@ const initialState = {
   transaction: 'sale',
   locality: undefined,
   agencySlug: undefined,
+  dealLabel: undefined,
   sortBy: undefined,
   sortDirection: undefined,
 }
@@ -55,6 +58,7 @@ export const useFilterStore = create<FilterState>((set, get) => ({
   setTransaction: (val) => set({ transaction: val }),
   setLocality: (val) => set({ locality: val }),
   setAgencySlug: (val) => set({ agencySlug: val }),
+  setDealLabel: (val) => set({ dealLabel: val }),
   setSortBy: (val) => set({ sortBy: val }),
   setSortDirection: (val) => set({ sortDirection: val }),
   hydrate: (filters) => set({ ...initialState, ...filters }),
@@ -63,7 +67,7 @@ export const useFilterStore = create<FilterState>((set, get) => ({
   clearFilters: () => set({ ...initialState }),
 
   toParams: () => {
-    const { priceMin, priceMax, type, bedrooms, minAreaM2, transaction, locality, agencySlug, sortBy, sortDirection } = get()
+    const { priceMin, priceMax, type, bedrooms, minAreaM2, transaction, locality, agencySlug, dealLabel, sortBy, sortDirection } = get()
     const params: ListingsParams = {}
     if (priceMin !== undefined) params.minPrice = priceMin
     if (priceMax !== undefined) params.maxPrice = priceMax
@@ -73,6 +77,7 @@ export const useFilterStore = create<FilterState>((set, get) => ({
     if (transaction) params.transaction = transaction
     if (locality) params.locality = locality
     if (agencySlug) params.agencySlug = agencySlug
+    if (dealLabel) params.dealLabel = dealLabel
     if (sortBy) {
       params.sortBy = sortBy
       params.sortDirection = sortDirection ?? 'Desc'

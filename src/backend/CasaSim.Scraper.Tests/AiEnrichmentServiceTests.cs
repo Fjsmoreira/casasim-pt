@@ -34,6 +34,16 @@ public sealed class AiEnrichmentServiceTests
             AiEnrichmentService.CalculateDealScore(expensive));
     }
 
+    [Theory]
+    [InlineData(70, "GoodDeal")]
+    [InlineData(69.99, "Neutral")]
+    [InlineData(40.01, "Neutral")]
+    [InlineData(40, "BadDeal")]
+    public void GetDealLabel_Uses_Configured_Thresholds(decimal score, string expected)
+    {
+        Assert.Equal(expected, AiEnrichmentService.GetDealLabel(score));
+    }
+
     private static ListingAiInput MakeInput(decimal? price, decimal? areaM2 = 150m) => new(
         Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
         "Moradia T3 em Pombal",

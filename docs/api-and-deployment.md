@@ -16,7 +16,6 @@ All routes are mounted under `/api`.
 | --- | --- | --- |
 | Health | `GET /api/health` | Database-backed health endpoint used by container and deployment checks. |
 | Listings | `GET /api/listings` | Preferred public listing search endpoint. Returns a paged result of listing summaries. |
-| Listings map | `GET /api/listings/geojson` | Returns a GeoJSON FeatureCollection for active listings inside a required bounding box. |
 | Properties | `GET /api/properties` | Legacy/public property search endpoint returning `{ items, total, page, pageSize }`. |
 | Properties | `GET /api/properties/{id}` | Listing detail by GUID. |
 | Admin | `GET /api/admin/ping` | Admin connectivity check; requires API key. |
@@ -33,15 +32,11 @@ Swagger is registered only in development (`ASPNETCORE_ENVIRONMENT=Development`)
 
 `GET /api/listings` accepts the current `ListingSearchRequest` query parameters:
 
-- Filters: `city`, `propertyType`, `priceType`, `status`, `minPrice`, `maxPrice`, `minBedrooms`, `minAreaM2`, `agencySlug`.
+- Filters: `city`, `propertyType`, `priceType`, `status`, `minPrice`, `maxPrice`, `minBedrooms`, `minAreaM2`, `agencySlug`, `dealLabel`.
 - Sorting: `sortBy`, `sortDirection`.
 - Pagination: `page`, `pageSize`.
 
-`GET /api/listings/geojson` requires all four bounding-box parameters:
-
-- `swLat`, `swLng`, `neLat`, `neLng`.
-
-It also accepts optional filters: `city`, `type`, `priceType`, `minPrice`, `maxPrice`, and `minBedrooms`.
+Listing summary/detail responses include an optional `ai` object with generated summary, deal score/label, reasons, warnings, and corrected facts.
 
 ## Admin authentication
 
@@ -65,6 +60,14 @@ AdminSettings__ApiKey=strong-random-admin-api-key
 ## Docker/Coolify service model
 
 The Compose stack includes a one-shot `migrate` service. It runs the EF Core migration bundle after PostgreSQL is healthy; the API and scraper wait for it to finish successfully. It is run on every deploy and exits without changes when no migrations are pending. Do not move migrations into normal API startup.
+
+For a deliberate clean data rebuild, run the scraper with the guarded operator command:
+
+```bash
+dotnet run --project src/backend/CasaSim.Scraper/CasaSim.Scraper.csproj -- --rebuild-data --confirm-drop
+```
+
+This drops and recreates the configured database through migrations, seeds agencies and scraper sources from migrations, runs every registered scraper once, runs AI enrichment for active listings when AI is enabled and configured, and prints counts by agency plus failed scraper/AI counts. It is never run automatically at startup.
 
 `docker-compose.yml` defines four services:
 

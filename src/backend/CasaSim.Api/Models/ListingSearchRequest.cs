@@ -20,6 +20,7 @@ public sealed class ListingSearchRequest
     public decimal? MinAreaM2 { get; init; }
     public string? Locality { get; init; }
     public string? AgencySlug { get; init; }
+    public string? DealLabel { get; init; }
 
     // ── Sorting ──────────────────────────────────────────────
     public string? SortBy { get; init; }
@@ -45,6 +46,7 @@ internal sealed record ValidatedSearchRequest
     public decimal? MinAreaM2 { get; init; }
     public string? Locality { get; init; }
     public string? AgencySlug { get; init; }
+    public string? DealLabel { get; init; }
 
     public string SortBy { get; init; } = "UpdatedAt";
     public string SortDirection { get; init; } = "Desc";

@@ -9,9 +9,12 @@ public sealed class ListingAiEnrichment
 
     public string SourceHash { get; set; } = string.Empty;
     public string? GeneratedDescription { get; set; }
+    public string? CorrectedFactsJson { get; set; }
+    public string? CorrectionAuditJson { get; set; }
     public string? ExtractedFactsJson { get; set; }
     public string? HighlightsJson { get; set; }
     public decimal? DealScore { get; set; }
+    public string? DealLabel { get; set; }
     public string? DealReasonsJson { get; set; }
     public string? WarningsJson { get; set; }
     public string Provider { get; set; } = string.Empty;

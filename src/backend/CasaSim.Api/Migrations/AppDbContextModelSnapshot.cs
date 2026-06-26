@@ -4,7 +4,6 @@ using CasaSim.Api;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using NetTopologySuite.Geometries;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
@@ -291,6 +290,19 @@ namespace CasaSim.Api.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
+                    b.Property<string>("CorrectedFactsJson")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("corrected_facts_json");
+
+                    b.Property<string>("CorrectionAuditJson")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("correction_audit_json");
+
+                    b.Property<string>("DealLabel")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("deal_label");
+
                     b.Property<string>("DealReasonsJson")
                         .HasColumnType("jsonb")
                         .HasColumnName("deal_reasons_json");
@@ -513,10 +525,6 @@ namespace CasaSim.Api.Migrations
                         .HasColumnType("character varying(500)")
                         .HasColumnName("address_line2");
 
-                    b.Property<Point>("Coordinate")
-                        .HasColumnType("geometry(Point, 4326)")
-                        .HasColumnName("coordinate");
-
                     b.Property<string>("CountryCode")
                         .IsRequired()
                         .HasMaxLength(5)
@@ -537,24 +545,9 @@ namespace CasaSim.Api.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("first_seen_at");
 
-                    b.Property<string>("Geohash")
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .HasColumnName("geohash");
-
                     b.Property<DateTimeOffset>("LastSeenAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("last_seen_at");
-
-                    b.Property<decimal?>("Latitude")
-                        .HasPrecision(10, 7)
-                        .HasColumnType("numeric(10,7)")
-                        .HasColumnName("latitude");
-
-                    b.Property<decimal?>("Longitude")
-                        .HasPrecision(10, 7)
-                        .HasColumnType("numeric(10,7)")
-                        .HasColumnName("longitude");
 
                     b.Property<string>("Municipality")
                         .IsRequired()
@@ -582,11 +575,6 @@ namespace CasaSim.Api.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_location");
-
-                    b.HasIndex("Coordinate")
-                        .HasDatabaseName("ix_location_coordinate");
-
-                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Coordinate"), "GIST");
 
                     b.HasIndex("Municipality")
                         .HasDatabaseName("ix_location_municipality");

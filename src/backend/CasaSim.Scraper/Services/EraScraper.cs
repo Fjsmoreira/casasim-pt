@@ -479,6 +479,9 @@ internal sealed class EraScraper : IPropertyScraper, IAgencyScraper
             _logger.LogWarning("ERA search token was rejected; refetching token and retrying once");
             response.Dispose();
             var freshToken = await AcquireAntiForgeryTokenAsync(ct);
+            if (string.IsNullOrWhiteSpace(freshToken))
+                throw new InvalidOperationException("ERA search token was rejected and a fresh anti-forgery token could not be acquired.");
+
             response = await _http.SendAsync(BuildRequest(freshToken), ct);
         }
 

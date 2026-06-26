@@ -1,14 +1,25 @@
 // ─── DTO types for the CasaSim.pt API ──────────────────────────
 // All endpoints are proxied via Vite: /api/* → localhost:5000
 
+export type DealLabel = 'GoodDeal' | 'Neutral' | 'BadDeal'
+
+export interface ListingAi {
+  summary?: string | null
+  dealScore?: number | null
+  dealLabel?: DealLabel | string | null
+  dealReasons: string[]
+  warnings: string[]
+  correctedFacts?: unknown
+}
+
 /** A single property listing (from GET /api/listings list) */
 export interface ListingSummary {
   id: string
   title: string
   price: number | null
-  type: 'house' | 'apartment' | 'land' | 'commercial' | 'other'
+  type?: 'house' | 'apartment' | 'land' | 'commercial' | 'other'
   propertyType?: string
-  transaction: 'sale' | 'rent'
+  transaction?: 'sale' | 'rent'
   priceType?: string
   bedrooms?: number
   bathrooms?: number
@@ -38,8 +49,7 @@ export interface ListingSummary {
   }
   listingUrl?: string
   source?: string
-  latitude?: number
-  longitude?: number
+  ai?: ListingAi | null
   publishedAt?: string
   firstSeenAt?: string
   lastSeenAt?: string
@@ -61,9 +71,9 @@ export interface ListingDetail {
   id: string
   title: string
   price: number | null
-  type: 'house' | 'apartment' | 'land' | 'commercial' | 'other'
+  type?: 'house' | 'apartment' | 'land' | 'commercial' | 'other'
   propertyType?: string
-  transaction: 'sale' | 'rent'
+  transaction?: 'sale' | 'rent'
   priceType?: string
   bedrooms?: number
   bathrooms?: number
@@ -80,8 +90,7 @@ export interface ListingDetail {
   agencyName?: string
   agencyPhone?: string
   agencyEmail?: string
-  latitude?: number
-  longitude?: number
+  ai?: ListingAi | null
   publishedAt?: string
   firstSeenAt?: string
   lastSeenAt?: string
@@ -104,6 +113,7 @@ export interface ListingsParams {
   city?: string
   locality?: string
   agencySlug?: string
+  dealLabel?: DealLabel
   sortBy?: string
   sortDirection?: string
 }
@@ -154,30 +164,6 @@ export interface AdminAgency {
   id: string
   name: string
   slug: string
-}
-
-/** GeoJSON FeatureCollection for the map page */
-export interface MapPropertiesResponse {
-  type: 'FeatureCollection'
-  features: Array<{
-    type: 'Feature'
-    geometry: {
-      type: 'Point'
-      coordinates: [number, number]
-    }
-    properties: {
-      id: string
-      price: number | null
-      price_type: string
-      currency: string
-      property_type: string
-      status: string
-      city?: string
-      bedrooms?: number
-      locality?: string
-      thumbnail?: string
-    }
-  }>
 }
 
 // ─── Admin: Scraper Status ────────────────────────────────

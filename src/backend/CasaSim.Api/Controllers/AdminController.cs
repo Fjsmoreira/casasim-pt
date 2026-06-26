@@ -50,6 +50,9 @@ public sealed class AdminController : ControllerBase
         [FromQuery] string? search = null,
         CancellationToken ct = default)
     {
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 100);
+
         IQueryable<Listing> query = _db.Listings
             .AsNoTracking()
             .Include(l => l.Agency)

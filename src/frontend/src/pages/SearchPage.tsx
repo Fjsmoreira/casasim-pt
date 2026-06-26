@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
-import { AlertCircle, ListFilter, Map, RefreshCw, Search } from 'lucide-react'
+import { AlertCircle, ListFilter, RefreshCw, Search } from 'lucide-react'
 import { useListings } from '@/hooks'
 import { useFilterStore } from '@/stores/filterStore'
 import SearchControls, { SortControl } from '@/components/SearchControls'
@@ -39,6 +39,7 @@ export default function SearchPage() {
       transaction: searchParams.get('transaction') ?? 'sale',
       priceMin: numeric('minPrice'), priceMax: numeric('maxPrice'), bedrooms: numeric('minBedrooms'), minAreaM2: numeric('minAreaM2'),
       locality: searchParams.get('locality') ?? undefined, agencySlug: searchParams.get('agencySlug') ?? undefined,
+      dealLabel: searchParams.get('dealLabel') === 'GoodDeal' || searchParams.get('dealLabel') === 'BadDeal' || searchParams.get('dealLabel') === 'Neutral' ? searchParams.get('dealLabel') as 'GoodDeal' | 'Neutral' | 'BadDeal' : undefined,
       sortBy: searchParams.get('sortBy') ?? undefined,
       sortDirection: searchParams.get('sortDirection') === 'Asc' ? 'Asc' : searchParams.get('sortDirection') === 'Desc' ? 'Desc' : undefined,
     })
@@ -72,7 +73,7 @@ export default function SearchPage() {
     <main className="mx-auto max-w-4xl px-4 py-7 sm:px-6 lg:px-8">
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3 border-b border-slate-200 pb-4">
         <div><h1 className="text-xl font-bold text-slate-900">Imóveis em Pombal</h1>{data && <p className="mt-0.5 text-sm text-slate-600">{data.totalCount.toLocaleString('pt-PT')} {data.totalCount === 1 ? 'imóvel encontrado' : 'imóveis encontrados'}</p>}</div>
-        <div className="flex items-center gap-3"><span className="hidden items-center gap-1 text-sm text-sky-800 sm:flex"><ListFilter className="size-4" />Ordenar:</span><SortControl /><Link to={`/map${location.search}`} state={returnState}><Button variant="outline" className="gap-2 rounded border-sky-700 text-sky-800 hover:bg-sky-50"><Map className="size-4" />Mapa</Button></Link></div>
+        <div className="flex items-center gap-3"><span className="hidden items-center gap-1 text-sm text-sky-800 sm:flex"><ListFilter className="size-4" />Ordenar:</span><SortControl /></div>
       </div>
       {isFetching && !isLoading && <p className="mb-3 flex items-center gap-2 text-xs text-gray-500"><RefreshCw className="size-3 animate-spin" />A atualizar resultados...</p>}
       {isLoading && <div className="space-y-4">{Array.from({ length: 5 }).map((_, index) => <ListingSkeleton key={index} />)}</div>}

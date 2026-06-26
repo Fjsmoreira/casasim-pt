@@ -43,7 +43,7 @@ Important paths:
 
 - `src/frontend/src/main.tsx` - React entrypoint.
 - `src/frontend/src/App.tsx` - application routes.
-- `src/frontend/src/pages/` - route pages such as search, map, details, and admin.
+- `src/frontend/src/pages/` - route pages such as search, details, and admin.
 - `src/frontend/src/components/` - shared UI and listing/property components.
 - `src/frontend/src/hooks/` - TanStack Query data hooks.
 - `src/frontend/src/lib/api.ts` - shared Axios client, configured with `baseURL: '/api'`.
@@ -68,7 +68,7 @@ Important paths:
 - `Program.cs` - service registration, Swagger in development, CORS, EF migrations, controller mapping.
 - `AppDbContext.cs` - EF Core database context.
 - `Controllers/HealthController.cs` - `GET /api/health`.
-- `Controllers/ListingsController.cs` - listing search and GeoJSON endpoints under `/api/listings`.
+- `Controllers/ListingsController.cs` - listing search and detail endpoints under `/api/listings`.
 - `Controllers/PropertiesController.cs` - property search/detail endpoints under `/api/properties`.
 - `Controllers/AdminController.cs` - admin endpoints under `/api/admin`, protected by `AdminAuthenticationFilter`.
 - `Migrations/` - EF Core migrations.
@@ -141,7 +141,7 @@ Host=db;Port=5432;Database=casasim;Username=${POSTGRES_USER:-casasim};Password=$
 2. React code calls relative URLs such as `/api/properties` or `/api/listings`.
 3. In local Vite dev, `vite.config.ts` proxies `/api` to `http://localhost:5000`.
 4. In Docker/production, `nginx/default.conf` proxies `/api/` to `http://api:5000` on the private Compose network.
-5. The API queries PostgreSQL/PostGIS through EF Core and returns JSON/GeoJSON.
+5. The API queries PostgreSQL through EF Core and returns JSON.
 6. The scraper independently refreshes database content through the same database service name (`db`).
 
 ## Key production design decisions

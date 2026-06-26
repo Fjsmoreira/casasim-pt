@@ -1,4 +1,4 @@
-import type { ListingSummary, ListingDetail, PropertyListResponse, MapPropertiesResponse } from '@/types/api'
+import type { ListingSummary, ListingDetail, PropertyListResponse } from '@/types/api'
 
 export const mockListing: ListingSummary = {
   id: 'prop-1',
@@ -33,8 +33,14 @@ export const mockListing: ListingSummary = {
   },
   listingUrl: 'https://example.com/listing/1',
   source: 'idealista',
-  latitude: 39.915,
-  longitude: -8.628,
+  ai: {
+    summary: 'Moradia T3 com boa área e preço competitivo para Pombal.',
+    dealScore: 78,
+    dealLabel: 'GoodDeal',
+    dealReasons: ['Preço por m² abaixo da média local.'],
+    warnings: ['Confirmar estado de conservação na visita.'],
+    correctedFacts: null,
+  },
   createdAt: '2025-01-15T10:00:00Z',
 }
 
@@ -94,8 +100,14 @@ export const mockListingDetail: ListingDetail = {
   agencyName: 'Imobiliária Central',
   agencyPhone: '+351 123 456 789',
   agencyEmail: 'info@central.pt',
-  latitude: 39.915,
-  longitude: -8.628,
+  ai: {
+    summary: 'Moradia T3 com boa área e preço competitivo para Pombal.',
+    dealScore: 78,
+    dealLabel: 'GoodDeal',
+    dealReasons: ['Preço por m² abaixo da média local.'],
+    warnings: ['Confirmar estado de conservação na visita.'],
+    correctedFacts: null,
+  },
   createdAt: '2025-01-15T10:00:00Z',
 }
 
@@ -113,30 +125,4 @@ export const mockEmptyListResponse: PropertyListResponse = {
   pageSize: 12,
   totalCount: 0,
   totalPages: 1,
-}
-
-export const mockGeoJson: MapPropertiesResponse = {
-  type: 'FeatureCollection',
-  features: [
-    {
-      type: 'Feature',
-      geometry: { type: 'Point', coordinates: [-8.628, 39.915] },
-      properties: {
-        id: 'prop-1',
-        price: 185000,
-        price_type: 'Sale',
-        currency: 'EUR',
-        property_type: 'House',
-        status: 'Active',
-        city: 'Pombal',
-        bedrooms: 3,
-        thumbnail: 'https://example.com/thumb.jpg',
-      },
-    },
-  ],
-}
-
-export const mockEmptyGeoJson: MapPropertiesResponse = {
-  type: 'FeatureCollection',
-  features: [],
 }

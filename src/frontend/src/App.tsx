@@ -3,7 +3,6 @@ import Layout from './components/Layout'
 import HomePage from './pages/HomePage'
 import SearchPage from './pages/SearchPage'
 import PropertyDetailPage from './pages/PropertyDetailPage'
-import MapPage from './pages/MapPage'
 import AdminPage from './pages/AdminPage'
 
 function App() {
@@ -14,7 +13,6 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/search" element={<SearchPage />} />
           <Route path="/listings/:id" element={<PropertyDetailPage />} />
-          <Route path="/map" element={<MapPage />} />
           <Route path="/admin" element={<AdminPage />} />
         </Route>
       </Routes>

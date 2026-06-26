@@ -43,6 +43,11 @@ const LOCALITIES = [
   'Vila Cã',
 ] as const
 
+const DEAL_LABELS = [
+  { value: 'GoodDeal', label: 'Bom negócio' },
+  { value: 'BadDeal', label: 'Mau negócio' },
+] as const
+
 /* ─────────────── shared input class ─────────────── */
 
 const inputCls =
@@ -55,14 +60,14 @@ function FilterContent({ className }: { className?: string }) {
   const { data: agencies = [] } = useAgencies()
   const {
     priceMin, priceMax,
-    type, bedrooms, minAreaM2, locality, agencySlug, sortBy,
-    setPriceMin, setPriceMax, setType, setBedrooms, setMinAreaM2, setLocality, setAgencySlug, setSortBy,
+    type, bedrooms, minAreaM2, locality, agencySlug, dealLabel, sortBy,
+    setPriceMin, setPriceMax, setType, setBedrooms, setMinAreaM2, setLocality, setAgencySlug, setDealLabel, setSortBy,
     clearFilters,
   } = useFilterStore()
 
   const anyActive = priceMin !== undefined || priceMax !== undefined ||
     type !== undefined || bedrooms !== undefined || minAreaM2 !== undefined ||
-    locality !== undefined || agencySlug !== undefined || sortBy !== undefined
+    locality !== undefined || agencySlug !== undefined || dealLabel !== undefined || sortBy !== undefined
 
   const handleBedroomChange = useCallback(
     (e: ChangeEvent<HTMLSelectElement>) => {
@@ -174,6 +179,22 @@ function FilterContent({ className }: { className?: string }) {
           <option value="">Todas</option>
           {agencies.map((agency) => (
             <option key={agency.id} value={agency.slug}>{agency.name}</option>
+          ))}
+        </select>
+      </fieldset>
+
+      {/* ── Bedrooms ── */}
+      <fieldset>
+        <legend className="text-sm font-medium text-foreground mb-2">Análise AI</legend>
+        <select
+          aria-label="Análise AI"
+          value={dealLabel ?? ''}
+          onChange={(e) => setDealLabel((e.target.value || undefined) as typeof dealLabel)}
+          className={inputCls + ' appearance-none'}
+        >
+          <option value="">Todos</option>
+          {DEAL_LABELS.map((deal) => (
+            <option key={deal.value} value={deal.value}>{deal.label}</option>
           ))}
         </select>
       </fieldset>

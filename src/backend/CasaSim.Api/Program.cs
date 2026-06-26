@@ -142,9 +142,11 @@ try
 
     app.MapControllers();
 
-    // Auto-migrate on startup (dev convenience)
-    using (var scope = app.Services.CreateScope())
+    if (app.Environment.IsDevelopment())
     {
+        // Auto-migrate only for local developer convenience. Production uses
+        // explicit migration bundles/services so startup is never destructive.
+        using var scope = app.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         db.Database.Migrate();
     }
